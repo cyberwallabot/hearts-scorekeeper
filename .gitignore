@@ -1,0 +1,7 @@
+.herenow/
+publish-result.txt
+punch-list.txt
+node_modules/
+*-backup.*
+__pycache__/
+.env
