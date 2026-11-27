@@ -1,5 +1,5 @@
 /* Hearts Table offline cache. Pages: network first (so updates arrive), then cache. Assets: cache first. */
-var CACHE = "hearts-table-v5";
+var CACHE = "hearts-table-v6";
 var ASSETS = ["./", "./index.html", "./manifest.webmanifest", "./apple-touch-icon.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", function (e) {

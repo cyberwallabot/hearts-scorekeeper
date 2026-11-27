@@ -1,10 +1,6 @@
 /* Hearts Table v5 app, part 1: state, storage, migration, feedback, small UI helpers. */
 var L = window.HeartsLogic, R = window.HeartsRules, M = window.HeartsMoon, DB = window.HeartsDB;
 var LEGACY_KEYS = { state: "hearts-scorekeeper-v1", draft: "hearts-draft-v1", bag: "hearts-moon-bag-v1" };
-var TABLE_SEATS = [ // shared-table mode, 4 players: bottom, left, top, right (clockwise)
-  { pos: "bottom", rot: 0, label: "Bottom" }, { pos: "left", rot: 90, label: "Left" },
-  { pos: "top", rot: 180, label: "Top" }, { pos: "right", rot: 270, label: "Right" }
-];
 var SEAT_WORD = ["Seat 1", "Seat 2", "Seat 3", "Seat 4", "Seat 5", "Seat 6"];
 var PHONE_TUNE = { unit: 22, maxGain: 2.2 };   // pass-the-phone slide: 22 px per point, gentle acceleration
 var TABLE_TUNE = null;                         // shared table keeps the original feel

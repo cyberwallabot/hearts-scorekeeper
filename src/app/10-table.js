@@ -1,14 +1,15 @@
-/* Part 2: the game screen. Pass-the-phone (upright, default) and shared-table (rotated, 4 players) layouts. */
+/* Part 2: the game screen. Pass-the-phone (default) and shared-table (upright tiles for a stand). */
 var built = { key: "", mode: "phone" };
 var drags = {};        // pointerId -> drag
 var dragBySeat = {};   // seat -> drag
 var keypadSeat = null, keypadBuf = "", keypadFresh = true;
 
 function layoutMode() {
-  if (!state) return "phone";
-  return settings.layout === "table" && state.players.length === 4 && R.activeSeats(state).length === 4 ? "table" : "phone";
+  if (!state || settings.layout !== "table") return "phone";
+  var n = R.activeSeats(state).length;
+  return n >= 3 && n <= 6 ? "table" : "phone";
 }
-function seatRot(i) { return layoutMode() === "table" ? TABLE_SEATS[i].rot : 0; }
+function seatRot() { return 0; }
 
 // Everything about the hand being entered (or edited).
 function ctx() {
@@ -46,7 +47,9 @@ function cardHtml(i) {
       (jack ? '<button type="button" class="c-j" id="cj-' + i + '" aria-pressed="false">J♦</button>' : "") +
       '<button type="button" class="c-moon" id="cmoon-' + i + '" hidden>🌙 Moon</button>' +
     '</div>' +
-    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div><div class="cd-scale"><i id="cdbar-' + i + '"></i></div>' +
+    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div>' +
+      '<div class="cd-slider" id="cdslider-' + i + '" role="slider" aria-valuemin="0" aria-valuemax="26" aria-valuenow="0" aria-label="' + esc(state.players[i]) + ' score">' +
+        '<div class="cd-track"><i id="cdbar-' + i + '"></i></div><span class="cd-thumb" id="cdthumb-' + i + '"></span></div>' +
       '<div class="cd-range"><span id="cdmin-' + i + '">0</span><span id="cdcap-' + i + '"></span><span id="cdmax-' + i + '">26</span></div>' +
       '<div class="cd-moon" id="cdmoon-' + i + '"><span>🌙 keep pushing to shoot the moon</span><div class="bar"><i></i></div></div></div>' +
   '</div>';
@@ -84,13 +87,7 @@ function buildGame() {
   built = { key: key, mode: mode };
   var g = $("game");
   g.className = "game lay-" + mode + " n" + act.length;
-  if (mode === "table") {
-    g.innerHTML = '<div class="tbl">' + TABLE_SEATS.map(function (s, i) {
-      return '<div class="tq q-' + s.pos + '"><div class="seat" id="seat-' + i + '" style="--rot:' + s.rot + 'deg">' + cardHtml(i) + "</div></div>";
-    }).join("") + '<div class="hubx">' + controlsHtml() + entryHtml() + barHtml() + "</div></div>";
-  } else {
-    g.innerHTML = controlsHtml() + '<section class="cards" id="cards">' + act.map(cardHtml).join("") + "</section>" + entryHtml() + barHtml();
-  }
+  g.innerHTML = controlsHtml() + '<section class="cards" id="cards">' + act.map(cardHtml).join("") + "</section>" + entryHtml() + barHtml();
   act.forEach(wireCard);
   $("save-btn").addEventListener("click", trySave);
   $("moon-btn").addEventListener("click", function () { askMoon(null); });
@@ -103,20 +100,9 @@ function buildGame() {
   $("edit-cancel").addEventListener("click", cancelEdit);
   $("g-over-results").addEventListener("click", function () { showWinnerScreen(true); });
   $("g-over-new").addEventListener("click", askNewGame);
-  sizeSeats();
 }
 
-function sizeSeats() {
-  if (built.mode !== "table") return;
-  TABLE_SEATS.forEach(function (s, i) {
-    var seat = $("seat-" + i);
-    if (!seat) return;
-    var r = seat.parentNode.getBoundingClientRect();
-    var swap = s.rot === 90 || s.rot === 270;
-    seat.style.width = (swap ? r.height : r.width) + "px";
-    seat.style.height = (swap ? r.width : r.height) + "px";
-  });
-}
+function sizeSeats() { /* stand layout sizes itself with the grid */ }
 
 function wireCard(i) {
   var card = $("card-" + i);
@@ -271,7 +257,7 @@ function paintAll() {
   $("g-target").textContent = "Game to " + state.target;
   paintClock();
   $("edit-banner").hidden = !c.editing;
-  if (c.editing) $("edit-text").textContent = "Editing hand " + (c.index + 1) + " · totals shown as of that hand";
+  if (c.editing) $("edit-text").textContent = "Editing hand " + (c.index + 1) + " · totals shown as of that hand" + (c.hand && c.hand.moon !== null ? " · " + R.moonPhrase(c.hand) : "");
 
   // meter + status
   var pct = Math.max(0, Math.min(100, hs.sum / total * 100));
@@ -386,8 +372,25 @@ function onMove(e) {
 }
 function paintDrag(d, b) {
   var i = d.seat, v = d.st.value, over = d.st.over || 0;
+  var tune = built.mode === "table" ? TABLE_TUNE : PHONE_TUNE;
+  var unit = tune && tune.unit > 0 ? tune.unit : L.JOG_BASE_PX;
+  var shown = v + (d.st.accum || 0) / unit;
+  if (shown < b.min) shown = b.min;
+  if (shown > b.max) shown = b.max;
+  var pct = b.max > b.min ? (shown - b.min) / (b.max - b.min) * 100 : 0;
   $("cdnum-" + i).textContent = String(v);
-  $("cdbar-" + i).style.width = (b.max ? v / b.max * 100 : 0) + "%";
+  var slider = $("cdslider-" + i);
+  if (slider) {
+    slider.setAttribute("aria-valuemax", String(b.max));
+    slider.setAttribute("aria-valuenow", String(v));
+    void slider.offsetWidth;
+    var track = slider.querySelector(".cd-track");
+    var inner = track ? track.clientWidth : 0;
+    $("cdbar-" + i).style.width = Math.round(inner * pct / 100) + "px";
+    // translate3d, not left: iOS Safari often waits until touchend to paint left/width.
+    var x = 17 + Math.max(0, (slider.clientWidth || 0) - 34) * pct / 100;
+    $("cdthumb-" + i).style.transform = "translate3d(" + x.toFixed(1) + "px,-50%,0)";
+  }
   $("cdmin-" + i).textContent = "0";
   $("cdmax-" + i).textContent = String(b.max);
   $("cdcap-" + i).textContent = v === b.max && b.max < handTotal() ? "the rest" : "";

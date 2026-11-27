@@ -30,7 +30,9 @@ st.rounds.push(h1);
 eq(R.handRecap(h1, st.players), "Dave took the Queen · Carol took 8 · Bob stayed clean");
 // hand 2: Carol shoots the moon (+26)
 let h2 = R.makeMoonHand(2, st);
-eq([h2.scores, h2.pass, h2.dealer], [[26, 26, 0, 26], "right", 1]);
+eq([h2.scores, h2.pass, h2.dealer, h2.moonMode], [[26, 26, 0, 26], "right", 1, "add"]);
+eq(R.moonPhrase(h2), "+26 to everyone else");
+eq(R.handRecap(h2, st.players), "Carol shot the moon (+26 to everyone else)");
 st.rounds.push(h2);
 eq(R.totals(st.rounds, 4), [31, 26, 8, 39], "punch list hand 2 totals");
 eq(R.runningTotals(st.rounds, 4), [[5, 0, 8, 13], [31, 26, 8, 39]]);
@@ -47,6 +49,10 @@ eq(R.losers([33, 29, 12, 56], [0, 1, 2, 3]), [3]);
 // --- -26 moon mode (R-04): shooter can go negative ---
 let s2 = R.newGame({ players: ["A", "B", "C", "D"], rules: { moonMode: "subtract" } });
 eq(R.makeMoonHand(1, s2).scores, [0, -26, 0, 0]);
+eq(R.makeMoonHand(1, s2).moonMode, "subtract");
+let fresh = R.newGame({ players: ["A", "B", "C", "D"], rules: { moonMode: "add" } });
+eq(R.makeMoonHand(0, fresh, null, 0, 0, "left", "subtract").scores, [-26, 0, 0, 0], "per-hand choice overrides the game default");
+eq(R.makeMoonHand(0, fresh, null, 0, 0, "left", "add").scores, [0, 26, 26, 26]);
 
 // --- passing patterns / player counts ---
 eq(R.passCycle(4, "classic"), ["left", "right", "across", "hold"]);
@@ -84,6 +90,15 @@ let v2 = { version: 2, id: "old", started: true, startedAt: 5, players: ["A", "B
   rounds: [{ scores: [5, 0, 8, 13], moon: null, pass: "left" }, { scores: [0, -26, 0, 0], moon: 1, pass: "right" }, { scores: [1, 2], pass: "left" }] };
 let m = R.sanitizeState(v2);
 eq([m.version, m.rules.moonMode, m.rounds.length, m.rounds[0].dealer, m.rounds[1].dealer, m.rounds[0].queen, m.rounds[1].queen, m.rounds[0].pts], [3, "subtract", 2, 1, 2, 3, 1, [5, 0, 8, 13]]);
+eq(m.rounds[1].moonMode, "subtract", "old −26 moon hand keeps its choice");
+eq(R.totals(m.rounds, 4), [5, -26, 8, 13]);
+let legacyAdd = R.sanitizeState({ players: ["A", "B", "C", "D"], moonMode: "add", started: true,
+  rounds: [{ scores: [26, 26, 0, 26], moon: 2, pass: "left" }] });
+eq(legacyAdd.rounds[0].moonMode, "add");
+eq(R.totals(legacyAdd.rounds, 4), [26, 26, 0, 26]);
+let scoresWin = R.sanitizeState({ players: ["A", "B", "C", "D"], moonMode: "add", started: true,
+  rounds: [{ scores: [0, -26, 0, 0], moon: 1, pass: "right", moonMode: "add" }] });
+eq(scoresWin.rounds[0].moonMode, "subtract", "stored scores beat a mismatched moonMode flag");
 eq(R.sanitizeState(null), null);
 
 // --- records, backup, merge ---

@@ -90,7 +90,10 @@ function renderDetail(body, g) {
   body.innerHTML =
     '<div class="detail-head"><div class="dh-win"><svg class="ic"><use href="#ic-trophy"/></svg>' + esc(who) + "</div>" +
     '<div class="dh-meta">' + esc(fmtDate(g.finishedAt)) + " · " + plural(g.hands, "hand") + " · " + R.formatDuration(g.durationMs) + " · game to " + g.target + "</div>" +
-    (g.moons.length ? '<div class="dh-moons">☾ ' + g.moons.map(function (m) { return esc(m.name) + " (hand " + (m.round + 1) + ")"; }).join(", ") + "</div>" : "") + "</div>" +
+    (g.moons.length ? '<div class="dh-moons">☾ ' + g.moons.map(function (m) {
+      var how = m.moonMode === "subtract" ? "− to the shooter" : "+ to everyone else";
+      return esc(m.name) + " (hand " + (m.round + 1) + ", " + how + ")";
+    }).join(", ") + "</div>" : "") + "</div>" +
     scorecardHtml(st, { readOnly: true }) +
     '<div class="row-actions"><button type="button" class="primary" id="detail-rematch">Play again with these players</button><button type="button" class="ghost" id="detail-share">Share image</button></div>' +
     '<div class="row-actions"><button type="button" class="danger" id="detail-delete">Delete this game</button></div>';

@@ -204,7 +204,28 @@ def phone_flow(browser):
     page.focus("#card-1"); page.keyboard.press("ArrowRight"); page.keyboard.press("ArrowRight"); page.keyboard.press("ArrowRight"); page.keyboard.press("ArrowLeft")
     check("HT-01 arrow keys", entry(page)[1] == 2, entry(page))
     check("HT-01 banner follows arrows", status(page) == "1 of 4 set · 2 of 26", status(page))
-    # slide (no hold): slow and very fast
+    # slide (no hold): slow and very fast, with a visible track and thumb
+    bb = page.locator("#card-0").bounding_box(); sx, sy = bb["x"] + 24, bb["y"] + bb["height"] * 0.42
+    tch.down(8, sx, sy); tch.move(8, sx + 70, sy); page.wait_for_timeout(40)
+    sl1 = page.evaluate("""() => {
+      const drag = document.getElementById('cdrag-0');
+      const track = drag && drag.querySelector('.cd-track');
+      const thumb = drag && drag.querySelector('.cd-thumb');
+      const fill = drag && drag.querySelector('.cd-track i');
+      if (!drag || drag.hidden || !track || !thumb) return null;
+      const tr = track.getBoundingClientRect(), th = thumb.getBoundingClientRect(), fl = fill.getBoundingClientRect();
+      return { trackW: tr.width, trackH: tr.height, thumbW: th.width, thumbH: th.height, mid: th.left + th.width / 2, trackL: tr.left, trackR: tr.right, fillW: fl.width, bg: getComputedStyle(track).backgroundColor, thumb: getComputedStyle(thumb).backgroundColor };
+    }""")
+    tch.move(8, sx + 160, sy); page.wait_for_timeout(40)
+    sl2 = page.evaluate("""() => { const th = document.querySelector('#cdrag-0 .cd-thumb'); const r = th.getBoundingClientRect(); return r.left + r.width / 2; }""")
+    tch.up(8); page.wait_for_timeout(40)
+    check("slider track and thumb visible while dragging", sl1 and sl1["trackW"] > 40 and sl1["trackH"] >= 10 and sl1["thumbW"] >= 24 and sl1["thumbH"] >= 24 and sl1["mid"] > sl1["trackL"] and sl1["mid"] < sl1["trackR"] + 1, sl1)
+    check("slider thumb follows the finger", sl1 and sl2 > sl1["mid"] + 4, sl2)
+    page.mouse.move(sx, sy); page.mouse.down(); page.mouse.move(sx + 90, sy, steps=8)
+    mouse_on = page.evaluate("() => !document.getElementById('cdrag-0').hidden && document.querySelector('#cdrag-0 .cd-thumb').getBoundingClientRect().width >= 24")
+    page.mouse.up(); page.wait_for_timeout(40)
+    check("slider also works with a mouse", mouse_on)
+    page.evaluate("__heartsTest.setEntry([null,2,null,null])")
     bb = page.locator("#card-2").bounding_box(); x, y = bb["x"] + 12, bb["y"] + bb["height"] * 0.45
     tch.down(3, x, y); tch.drag(3, 110, 0, 22, 25); tch.up(3); page.wait_for_timeout(60)
     v = entry(page)[2]
@@ -322,28 +343,28 @@ def table_mode(browser):
     fit = page.evaluate(FIT_JS)
     check("table layout fits 820x1180", fit["scroll"] <= 0 and not fit["bad"], fit)
     t = Touch(page)
-    MORE = {0: (1, 0), 1: (0, 1), 2: (-1, 0), 3: (0, -1)}
-    # two players slide at once, each in their own direction
+    # two players slide at once; every tile is upright so right is +points
+    check("stand: no rotated or upside-down text", page.evaluate(ROT_JS) == 0)
     pts = {}
-    for s in (0, 2):
+    for s in (0, 1):
         x, y = center(page, "#card-%d .c-total" % s); pts[s] = (x, y); t.down(s + 1, x, y)
     for k in range(1, 15):
-        for s in (0, 2):
-            x, y = pts[s]; mx, my = MORE[s]; t.move(s + 1, x + mx * 6 * k, y + my * 6 * k)
+        for s in (0, 1):
+            x, y = pts[s]; t.move(s + 1, x + 5 * k, y)
         time.sleep(0.03)
-    for s in (0, 2): t.up(s + 1)
+    for s in (0, 1): t.up(s + 1)
     page.wait_for_timeout(80)
     e = entry(page)
-    check("multi-touch: two seats slide at once (seat-relative)", (e[0] or 0) > 0 and (e[2] or 0) > 0 and (e[0] + e[2]) <= 26, e)
-    # keypad faces the seat
+    check("multi-touch: two seats slide at once (both upright)", (e[0] or 0) > 0 and (e[1] or 0) > 0 and (e[0] + e[1]) <= 26, e)
+    # keypad stays upright — the iPad is on a stand, facing everyone
     page.click("#cval-2"); face = page.evaluate("getComputedStyle(document.getElementById('keypad-box')).getPropertyValue('--face').trim()")
-    check("keypad rotates to face the top seat", face == "180deg", face)
+    check("keypad stays upright on the stand", face in ("0deg", "0"), face)
     shot(page, "ipad-table-keypad")
     page.click("#kp-close")
     # overshoot past the end -> moon question
     page.evaluate("__heartsTest.setEntry([0,null,0,0])")
-    x, y = center(page, "#card-1 .c-total")
-    t.down(9, x, y - 60); t.drag(9, 0, 520, 60, 16); t.up(9); page.wait_for_timeout(120)
+    x, y = center(page, "#card-1")
+    t.down(9, x, y); t.drag(9, 700, 0, 60, 16); t.up(9); page.wait_for_timeout(120)
     check("slide past the end and keep pushing -> moon confirm", page.is_visible("#moon-confirm"))
     page.click("#moon-confirm"); page.wait_for_timeout(300)
     rot = page.evaluate("(() => { const c = document.querySelector('#moon-stage [data-rot]'); return c ? c.getAttribute('data-rot') : 'none'; })()")
@@ -358,6 +379,23 @@ def table_mode(browser):
     shot(page, "ipad-phone-layout")
     check("no page errors (table)", not errs, errs)
     ctx.close()
+    for vp, names, label in (({"width": 1180, "height": 820}, ("Ana", "Ben", "Cy", "Di"), "land-4"),
+                             ({"width": 820, "height": 1180}, ("Ana", "Ben", "Cy"), "port-3"),
+                             ({"width": 1180, "height": 820}, ("Ana", "Ben", "Cy", "Di", "Eve"), "land-5"),
+                             ({"width": 820, "height": 1180}, ("Ana", "Ben", "Cy", "Di", "Eve", "Fay"), "port-6"),
+                             ({"width": 390, "height": 844}, ("Ana", "Ben", "Cy", "Di"), "phone-stand")):
+        ctx, page, errs = fresh(browser, vp, mobile=vp["width"] < 1100)
+        start(page, names, table=True)
+        check("stand %s layout on" % label, page.evaluate("__heartsTest.layout()") == "table")
+        fit = page.evaluate(FIT_JS)
+        check("stand %s fits" % label, fit["scroll"] <= 0 and fit["scrollW"] <= 0 and not fit["bad"], fit)
+        check("stand %s upright" % label, page.evaluate(ROT_JS) == 0)
+        small = page.evaluate(TARGETS_JS)
+        check("stand %s targets >= 44px" % label, not small, small[:4])
+        fs = page.evaluate("Math.min(...[...document.querySelectorAll('.c-total b')].map(e => parseFloat(getComputedStyle(e).fontSize)))")
+        check("stand %s totals >= 28px" % label, fs >= 28, fs)
+        check("stand %s no errors" % label, not errs, errs)
+        ctx.close()
 
 def desktop_and_sizes(browser):
     print("=== desktop 1919x998 and 5-6 players ===")
@@ -401,7 +439,30 @@ def variants(browser):
     page.click("#moon-btn"); page.click(".pick[data-seat='3']")
     check("R-04 −26 confirm explains", "gets −26" in page.inner_text("#modal-body"))
     page.click("#moon-confirm"); skip_moon(page); close_sc(page)
-    check("R-04 −26 mode: shooter goes negative", st(page)["rounds"][0]["scores"] == [0, 0, 0, -26] and page.inner_text("#ctot-3") == "-26")
+    check("R-04 −26 mode: shooter goes negative", st(page)["rounds"][0]["scores"] == [0, 0, 0, -26] and st(page)["rounds"][0]["moonMode"] == "subtract" and page.inner_text("#ctot-3") == "-26")
+    # each moon hand chooses, even when the game default is +26
+    page.click("#menu-btn"); page.click("#m-new"); page.click("#newgame-confirm"); page.wait_for_timeout(100)
+    page.select_option("#preset-select", "Classic"); start(page, ("Ana", "Ben", "Cy", "Di"))
+    page.click("#moon-btn"); page.click(".pick[data-seat='0']")
+    check("moon choice shows both and pre-selects the default", page.get_attribute("#moon-add", "aria-pressed") == "true" and page.is_visible("#moon-sub") and "this hand only" in page.inner_text("#modal-body").lower())
+    page.click("#moon-sub")
+    check("switching the choice updates the preview", page.get_attribute("#moon-sub", "aria-pressed") == "true" and "gets −26" in page.inner_text("#modal-body"))
+    page.click("#moon-confirm"); skip_moon(page); close_sc(page)
+    check("this hand used −26 even though the default is +26", st(page)["rounds"][0]["scores"] == [-26, 0, 0, 0] and st(page)["rounds"][0]["moonMode"] == "subtract")
+    page.click("#moon-btn"); page.click(".pick[data-seat='1']")
+    check("next hand pre-selects the game default again", page.get_attribute("#moon-add", "aria-pressed") == "true")
+    page.click("#moon-confirm"); skip_moon(page); close_sc(page)
+    check("second moon hand is +26 to the others", st(page)["rounds"][1]["scores"] == [26, 0, 26, 26] and st(page)["rounds"][1]["moonMode"] == "add")
+    page.click("#hands-btn"); page.wait_for_timeout(80)
+    check("hands list shows each moon choice", "−26 to the shooter" in page.inner_text("#sheet-body") and "+26 to everyone else" in page.inner_text("#sheet-body"))
+    page.click("#sheet-body [data-edit='0']"); page.wait_for_timeout(80)
+    check("edit banner names that hand's moon choice", "−26 to the shooter" in page.inner_text("#edit-text"))
+    page.click("#save-btn"); page.wait_for_timeout(80)
+    check("editing a moon hand pre-selects its own choice", page.get_attribute("#moon-sub", "aria-pressed") == "true")
+    page.click("#moon-add"); page.click("#moon-confirm"); skip_moon(page)
+    s = st(page)
+    tot = [sum(r["scores"][i] for r in s["rounds"]) for i in range(4)]
+    check("changing a hand's moon choice recalculates totals", s["rounds"][0]["moonMode"] == "add" and s["rounds"][0]["scores"] == [0, 26, 26, 26] and tot == [26, 26, 52, 52], tot)
     # 3 players: left, right, hold; 5 players: no across
     page.click("#menu-btn"); page.click("#m-new"); page.wait_for_timeout(100)
     if page.is_visible("#newgame-confirm"): page.click("#newgame-confirm")
@@ -484,7 +545,7 @@ def history(browser):
     csv = open(dl.value.path(), encoding="utf-8").read().strip().split("\n")
     check("HT-14/R-03 CSV: header + one row per player per hand", csv[0].startswith("game_id,finished_at,target,rules,hand,player") and len(csv) == 1 + 3 * 4, len(csv))
     row = [r for r in csv[1:] if ",1,Maya,1,13,13,13," in r]
-    check("R-03 CSV values (hand 1: Maya 13 incl. the Queen, winner flag on Priya)", row and ",yes," in row[0] and any(",Priya," in r and r.endswith(",7,yes") for r in csv[1:]), row[:1])
+    check("R-03 CSV values (hand 1: Maya 13 incl. the Queen, winner flag on Priya)", row and ",yes," in row[0] and any(",Priya," in r and ",7,yes" in r for r in csv[1:]), row[:1])
     page.click(".game-row"); page.wait_for_timeout(150)
     check("HT-14 game opens read-only scorecard", page.locator("#history-body .scd tbody tr").count() == 3 and page.locator("#history-body [data-edit]").count() == 0)
     page.click("#detail-delete"); page.click("#confirm-delete-game"); page.wait_for_timeout(300)
@@ -592,7 +653,7 @@ def migration(browser):
     ctx, page, errs = fresh(browser, {"width": 390, "height": 844}, init=init)
     check("v1: resume prompt", page.is_visible("#resume-yes"))
     s = st(page)
-    check("v1: rounds + names + queen inferred", s["players"][0] == "Old" and len(s["rounds"]) == 2 and s["rounds"][0]["queen"] == 3 and s["rounds"][1]["moon"] == 0)
+    check("v1: rounds + names + queen inferred", s["players"][0] == "Old" and len(s["rounds"]) == 2 and s["rounds"][0]["queen"] == 3 and s["rounds"][1]["moon"] == 0 and s["rounds"][1]["moonMode"] == "add" and s["rounds"][1]["scores"] == [0, 26, 26, 26])
     check("v1: draft carried over", entry(page) == [3, None, None, None])
     page.click("#resume-yes")
     # v4 IndexedDB snapshot
