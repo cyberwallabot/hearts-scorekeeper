@@ -30,9 +30,9 @@
       passMode: ["classic", "nohold", "none"].indexOf(r.passMode) !== -1 ? r.passMode : "classic"
     };
   }
+  var MOON_POINTS = 26; // a moon is always 26, even when Spot Hearts makes the hand worth 117
   function rulesSummary(r) {
-    var t = pointsTotal(r);
-    var bits = ["Moon each hand, default " + (r.moonMode === "subtract" ? "−" + t + " to shooter" : "+" + t + " to others")];
+    var bits = ["Moon each hand, default " + (r.moonMode === "subtract" ? "−" + MOON_POINTS + " to shooter" : "+" + MOON_POINTS + " to others")];
     if (r.spot) bits.push("Spot hearts");
     if (r.jack) bits.push("J♦ −10");
     if (r.passMode === "nohold") bits.push("No hold hands");
@@ -155,7 +155,7 @@
     return h;
   }
   function makeMoonHand(shooter, st, jack, handIndex, dealer, pass, moonMode) {
-    var n = st.players.length, active = activeSeats(st), total = pointsTotal(st.rules);
+    var n = st.players.length, active = activeSeats(st), total = MOON_POINTS;
     var mode = moonMode === "subtract" || moonMode === "add" ? moonMode : (st.rules && st.rules.moonMode === "subtract" ? "subtract" : "add");
     var scores = range(n).map(function (s) {
       if (active.indexOf(s) === -1) return 0;
@@ -490,7 +490,7 @@
 
   return {
     COLORS: COLORS, MIN_PLAYERS: MIN_PLAYERS, MAX_PLAYERS: MAX_PLAYERS, PASS_LABEL: PASS_LABEL,
-    isInt: isInt, defaultRules: defaultRules, sanitizeRules: sanitizeRules, rulesSummary: rulesSummary, pointsTotal: pointsTotal, cardsInfo: cardsInfo,
+    isInt: isInt, defaultRules: defaultRules, sanitizeRules: sanitizeRules, rulesSummary: rulesSummary, pointsTotal: pointsTotal, MOON_POINTS: MOON_POINTS, cardsInfo: cardsInfo,
     activeSeats: activeSeats, passCycle: passCycle, passFor: passFor, passTarget: passTarget, nextDealer: nextDealer, currentDealer: currentDealer,
     entryBounds: entryBounds, queenCandidates: queenCandidates, handStatus: handStatus, blankEntry: blankEntry, makeHand: makeHand, makeMoonHand: makeMoonHand, moonPhrase: moonPhrase,
     totals: totals, runningTotals: runningTotals, leaders: leaders, losers: losers, ranks: ranks, isOver: isOver, winners: winners, handRecap: handRecap,

@@ -68,7 +68,7 @@ function askMoon(seat, fromValue) {
   var jack = state.rules.jack ? (isInt(entry.jack) ? entry.jack : null) : null;
   var mode = state.rules.moonMode === "subtract" ? "subtract" : "add";
   if (c.hand && c.hand.moon === seat && (c.hand.moonMode === "add" || c.hand.moonMode === "subtract")) mode = c.hand.moonMode;
-  var total = handTotal();
+  var total = R.MOON_POINTS;
   var draw = function () {
     var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass, mode);
     var n = state.players.length, run = R.runningTotals(state.rounds, n);
@@ -83,8 +83,8 @@ function askMoon(seat, fromValue) {
     var choice = '<div class="seg moon-choice" role="group" aria-label="How to score this moon">' +
       '<button type="button" id="moon-add" aria-pressed="' + (mode === "add" ? "true" : "false") + '">+' + total + ' to everyone else<small>Shooter scores 0</small></button>' +
       '<button type="button" id="moon-sub" aria-pressed="' + (mode === "subtract" ? "true" : "false") + '">−' + total + ' to the shooter<small>Others score 0</small></button></div>';
-    return "<p>" + (fromValue ? esc(state.players[seat]) + " took all " + total + " points. " : "") +
-      "Choose for this hand only. " + how + "</p>" + choice +
+    return "<p>" + (fromValue ? esc(state.players[seat]) + " took every point in the hand. " : "") +
+      "Choose for this hand only. A moon is " + total + " points. " + how + "</p>" + choice +
       '<table class="moon-preview"><thead><tr><th>Player</th><th>Now</th><th>Hand</th><th>New total</th></tr></thead><tbody>' + rows + "</tbody></table>" + jackHtml;
   };
   var confirm = function () {
@@ -136,7 +136,7 @@ function moonDone() {
   else if (pendingSheet) { pendingSheet = false; openScorecard({ auto: true, hand: state.rounds.length - 1 }); }
 }
 function moonText() {
-  var t = handTotal();
+  var t = R.MOON_POINTS;
   return lastMoonMode === "subtract" ? "Minus " + t + " for the shooter" : "Everyone else takes " + t;
 }
 function playCalmMoon(name) {
