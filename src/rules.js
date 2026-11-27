@@ -31,7 +31,8 @@
     };
   }
   function rulesSummary(r) {
-    var bits = [r.moonMode === "subtract" ? "Moon −26 to shooter" : "Moon +26 to others"];
+    var t = pointsTotal(r);
+    var bits = ["Moon each hand, default " + (r.moonMode === "subtract" ? "−" + t + " to shooter" : "+" + t + " to others")];
     if (r.spot) bits.push("Spot hearts");
     if (r.jack) bits.push("J♦ −10");
     if (r.passMode === "nohold") bits.push("No hold hands");
@@ -153,18 +154,53 @@
     if (st.out && st.out.some(Boolean)) h.out = st.out.map(Boolean);
     return h;
   }
-  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass) {
+  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass, moonMode) {
     var n = st.players.length, active = activeSeats(st), total = pointsTotal(st.rules);
+    var mode = moonMode === "subtract" || moonMode === "add" ? moonMode : (st.rules && st.rules.moonMode === "subtract" ? "subtract" : "add");
     var scores = range(n).map(function (s) {
       if (active.indexOf(s) === -1) return 0;
-      if (st.rules.moonMode === "subtract") return s === shooter ? -total : 0;
+      if (mode === "subtract") return s === shooter ? -total : 0;
       return s === shooter ? 0 : total;
     });
     var j = st.rules.jack && isInt(jack) ? jack : null;
     if (j !== null) scores[j] -= 10;
     var k = isInt(handIndex) ? handIndex : st.rounds.length;
-    return withOut({ scores: scores, pts: null, moon: shooter, pass: pass || passFor(k, active.length, st.rules.passMode),
+    return withOut({ scores: scores, pts: null, moon: shooter, moonMode: mode, pass: pass || passFor(k, active.length, st.rules.passMode),
       dealer: isInt(dealer) ? dealer : currentDealer(st), queen: shooter, jack: j }, st);
+  }
+  // How many points the moon pile was, after undoing a J♦ −10 on the same hand.
+  function moonPoints(h) {
+    if (!h || !isInt(h.moon) || !h.scores) return 0;
+    var jackHere = isInt(h.jack), i, best, n;
+    if (h.moonMode === "subtract") {
+      n = -h.scores[h.moon];
+      if (jackHere && h.jack === h.moon) n -= 10;
+      return n;
+    }
+    best = 0;
+    for (i = 0; i < h.scores.length; i++) {
+      if (i === h.moon) continue;
+      n = h.scores[i] + (jackHere && h.jack === i ? 10 : 0);
+      if (n > best) best = n;
+    }
+    return best;
+  }
+  function moonPhrase(h) {
+    if (!h || !isInt(h.moon)) return "";
+    var n = moonPoints(h);
+    return h.moonMode === "subtract" ? "−" + n + " to the shooter" : "+" + n + " to everyone else";
+  }
+  // Scores are the source of truth for old saves that had one moon setting for the whole game.
+  function inferMoonMode(scores, shooter, fallback) {
+    if (!scores || !isInt(shooter) || shooter < 0 || shooter >= scores.length) {
+      return fallback === "subtract" || fallback === "add" ? fallback : null;
+    }
+    var self = scores[shooter], othersMax = -Infinity, i;
+    for (i = 0; i < scores.length; i++) if (i !== shooter && scores[i] > othersMax) othersMax = scores[i];
+    if (self <= -13 && othersMax <= 0) return "subtract";
+    if (othersMax >= 13) return "add";
+    if (fallback === "subtract" || fallback === "add") return fallback;
+    return null;
   }
 
   /* ---------- totals, standings ---------- */
@@ -211,7 +247,7 @@
 
   function handRecap(r, players) {
     if (isInt(r.moon)) {
-      var s = players[r.moon] + " shot the moon";
+      var s = players[r.moon] + " shot the moon (" + moonPhrase(r) + ")";
       if (isInt(r.jack)) s += "; " + players[r.jack] + " took the J♦";
       return s;
     }
@@ -256,7 +292,7 @@
       (r.pts == null || (Array.isArray(r.pts) && r.pts.length === n && r.pts.every(isInt)));
   }
   // Fill fields older saves didn't have (pts, dealer, queen).
-  function upgradeHand(r, k, n, firstDealer) {
+  function upgradeHand(r, k, n, firstDealer, legacyMoon) {
     var h = { scores: r.scores.slice(), moon: isInt(r.moon) ? r.moon : null, pass: r.pass,
       pts: Array.isArray(r.pts) ? r.pts.slice() : (isInt(r.moon) ? null : r.scores.slice()),
       dealer: isInt(r.dealer) && r.dealer >= 0 && r.dealer < n ? r.dealer : mod((firstDealer || 0) + k, n),
@@ -265,6 +301,11 @@
     if (h.queen === null) {
       if (h.moon !== null) h.queen = h.moon;
       else if (h.pts) { var c = h.pts.map(function (p, i) { return p >= 13 ? i : -1; }).filter(function (i) { return i >= 0; }); if (c.length === 1) h.queen = c[0]; }
+    }
+    if (h.moon !== null) {
+      var explicit = r.moonMode === "add" || r.moonMode === "subtract" ? r.moonMode : null;
+      var fromScores = inferMoonMode(h.scores, h.moon, null);
+      h.moonMode = fromScores || explicit || (legacyMoon === "subtract" ? "subtract" : "add");
     }
     return h;
   }
@@ -276,7 +317,8 @@
       ? p.players.map(function (x, i) { return normName(x, "Player " + (i + 1)); }) : ["Player 1", "Player 2", "Player 3", "Player 4"];
     var n = players.length;
     var fd = isInt(p.firstDealer) ? mod(p.firstDealer, n) : 0;
-    var rounds = (Array.isArray(p.rounds) ? p.rounds : []).filter(function (r) { return validHand(r, n); }).map(function (r, k) { return upgradeHand(r, k, n, fd); });
+    var legacyMoon = (p.rules && p.rules.moonMode) || p.moonMode;
+    var rounds = (Array.isArray(p.rounds) ? p.rounds : []).filter(function (r) { return validHand(r, n); }).map(function (r, k) { return upgradeHand(r, k, n, fd, legacyMoon); });
     var st = {
       version: 3, id: typeof p.id === "string" && p.id ? p.id.slice(0, 80) : makeId(t), started: !!p.started,
       startedAt: isInt(p.startedAt) ? p.startedAt : t, players: players,
@@ -300,7 +342,7 @@
       players: st.players.slice(), colors: st.colors.slice(), out: st.out.slice(), target: st.target, rules: clone(st.rules),
       moonMode: st.rules.moonMode, firstDealer: st.firstDealer, rounds: clone(st.rounds), totals: tots,
       winners: w, winnerNames: w.map(function (i) { return st.players[i]; }),
-      moons: st.rounds.map(function (r, k) { return isInt(r.moon) ? { round: k, player: r.moon, name: st.players[r.moon] } : null; }).filter(Boolean),
+      moons: st.rounds.map(function (r, k) { return isInt(r.moon) ? { round: k, player: r.moon, name: st.players[r.moon], moonMode: r.moonMode === "subtract" ? "subtract" : "add" } : null; }).filter(Boolean),
       hands: st.rounds.length
     };
   }
@@ -393,7 +435,7 @@
 
   function csvCell(v) { var s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function toCsv(games) {
-    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner"]];
+    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner", "moon_choice"]];
     (games || []).forEach(function (g) {
       var n = g.players.length, run = runningTotals(g.rounds, n), act = range(n).filter(function (i) { return !(g.out && g.out[i]); });
       var rulesTxt = rulesSummary(sanitizeRules(g.rules, g.moonMode));
@@ -401,7 +443,8 @@
         var rk = ranks(run[k], act);
         g.players.forEach(function (p, i) {
           rows.push([g.id, new Date(g.finishedAt).toISOString(), g.target, rulesTxt, k + 1, p, i + 1, r.pts ? r.pts[i] : "", r.scores[i], run[k][i], rk[i] || "",
-            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : ""]);
+            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : "",
+            isInt(r.moon) ? (r.moonMode === "subtract" ? "subtract" : "add") : ""]);
         });
       });
     });
@@ -449,7 +492,7 @@
     COLORS: COLORS, MIN_PLAYERS: MIN_PLAYERS, MAX_PLAYERS: MAX_PLAYERS, PASS_LABEL: PASS_LABEL,
     isInt: isInt, defaultRules: defaultRules, sanitizeRules: sanitizeRules, rulesSummary: rulesSummary, pointsTotal: pointsTotal, cardsInfo: cardsInfo,
     activeSeats: activeSeats, passCycle: passCycle, passFor: passFor, passTarget: passTarget, nextDealer: nextDealer, currentDealer: currentDealer,
-    entryBounds: entryBounds, queenCandidates: queenCandidates, handStatus: handStatus, blankEntry: blankEntry, makeHand: makeHand, makeMoonHand: makeMoonHand,
+    entryBounds: entryBounds, queenCandidates: queenCandidates, handStatus: handStatus, blankEntry: blankEntry, makeHand: makeHand, makeMoonHand: makeMoonHand, moonPhrase: moonPhrase,
     totals: totals, runningTotals: runningTotals, leaders: leaders, losers: losers, ranks: ranks, isOver: isOver, winners: winners, handRecap: handRecap,
     makeId: makeId, normName: normName, nameKey: nameKey, isPlaceholder: isPlaceholder, newGame: newGame, validHand: validHand, sanitizeState: sanitizeState,
     buildRecord: buildRecord, validRecord: validRecord, normalizeRecord: normalizeRecord, parseBackup: parseBackup, mergeGames: mergeGames, updateRoster: updateRoster,

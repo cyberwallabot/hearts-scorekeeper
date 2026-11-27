@@ -50,6 +50,7 @@ function commitHand(hand, c) {
 var pendingSheet = false;
 
 /* ---------- shooting the moon ---------- */
+var lastMoonMode = "add";
 function askMoon(seat, fromValue) {
   if (locked() || moonBusy || !state) return;
   var c = ctx();
@@ -65,44 +66,54 @@ function askMoon(seat, fromValue) {
     return;
   }
   var jack = state.rules.jack ? (isInt(entry.jack) ? entry.jack : null) : null;
+  var mode = state.rules.moonMode === "subtract" ? "subtract" : "add";
+  if (c.hand && c.hand.moon === seat && (c.hand.moonMode === "add" || c.hand.moonMode === "subtract")) mode = c.hand.moonMode;
+  var total = handTotal();
   var draw = function () {
-    var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass);
+    var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass, mode);
     var n = state.players.length, run = R.runningTotals(state.rounds, n);
     var before = c.editing ? (c.index > 0 ? run[c.index - 1] : state.players.map(function () { return 0; })) : R.totals(state.rounds, n);
-    var total = handTotal();
     var rows = c.active.map(function (i) {
       return "<tr><td>" + avatar(state, i) + " " + esc(state.players[i]) + "</td><td>" + before[i] + '</td><td class="d">' + (hand.scores[i] >= 0 ? "+" : "") + hand.scores[i] + "</td><td><b>" + (before[i] + hand.scores[i]) + "</b></td></tr>";
     }).join("");
-    var how = state.rules.moonMode === "subtract" ? esc(state.players[seat]) + " gets −" + total + "; everyone else 0." : esc(state.players[seat]) + " scores 0; everyone else +" + total + ".";
+    var how = mode === "subtract" ? esc(state.players[seat]) + " gets −" + total + "; everyone else 0." : esc(state.players[seat]) + " scores 0; everyone else +" + total + ".";
     var jackHtml = state.rules.jack ? '<div class="field-label">Who took the J♦ (−10)?</div><div class="chips jack-pick">' + c.active.map(function (i) {
       return '<button type="button" data-j="' + i + '" aria-pressed="' + (jack === i ? "true" : "false") + '">' + esc(state.players[i]) + "</button>";
     }).join("") + "</div>" : "";
-    return "<p>" + (fromValue ? esc(state.players[seat]) + " took all " + total + " points: that is shooting the moon. " : "") + how + "</p>" +
+    var choice = '<div class="seg moon-choice" role="group" aria-label="How to score this moon">' +
+      '<button type="button" id="moon-add" aria-pressed="' + (mode === "add" ? "true" : "false") + '">+' + total + ' to everyone else<small>Shooter scores 0</small></button>' +
+      '<button type="button" id="moon-sub" aria-pressed="' + (mode === "subtract" ? "true" : "false") + '">−' + total + ' to the shooter<small>Others score 0</small></button></div>';
+    return "<p>" + (fromValue ? esc(state.players[seat]) + " took all " + total + " points. " : "") +
+      "Choose for this hand only. " + how + "</p>" + choice +
       '<table class="moon-preview"><thead><tr><th>Player</th><th>Now</th><th>Hand</th><th>New total</th></tr></thead><tbody>' + rows + "</tbody></table>" + jackHtml;
   };
   var confirm = function () {
     if (state.rules.jack && jack === null) { toast("Pick who took the J♦ first."); sfx("error"); return; }
     closeModal();
-    triggerMoon(seat, jack);
+    triggerMoon(seat, jack, mode);
   };
   openModal(state.players[seat] + " shot the moon?", draw(), [
     { label: fromValue ? "Cancel" : "Not a moon", className: "ghost", id: "moon-cancel", onClick: closeModal },
-    { label: "🌙 Shoot the moon", className: "primary", id: "moon-confirm", onClick: confirm }
+    { label: "🌙 Score this hand", className: "primary", id: "moon-confirm", onClick: confirm }
   ]);
-  faceModal(seatRot(seat));
-  var wireJack = function () {
+  faceModal(0);
+  var wireMoon = function () {
     $("modal-body").querySelectorAll("[data-j]").forEach(function (b) {
-      b.addEventListener("click", function () { jack = Number(b.getAttribute("data-j")); $("modal-body").innerHTML = draw(); wireJack(); });
+      b.addEventListener("click", function () { jack = Number(b.getAttribute("data-j")); $("modal-body").innerHTML = draw(); wireMoon(); });
     });
+    var add = $("moon-add"), sub = $("moon-sub");
+    if (add) add.addEventListener("click", function () { mode = "add"; $("modal-body").innerHTML = draw(); wireMoon(); });
+    if (sub) sub.addEventListener("click", function () { mode = "subtract"; $("modal-body").innerHTML = draw(); wireMoon(); });
   };
-  wireJack();
+  wireMoon();
 }
 
-function triggerMoon(seat, jack) {
+function triggerMoon(seat, jack, mode) {
   if (moonBusy) return;
   endAllDrags();
   var c = ctx();
-  var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass);
+  var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass, mode);
+  lastMoonMode = hand.moonMode;
   moonBusy = true; // so the winner screen / scorecard waits for the animation
   startMoonAnimation(seat);
   commitHand(hand, c);
@@ -126,7 +137,7 @@ function moonDone() {
 }
 function moonText() {
   var t = handTotal();
-  return state.rules.moonMode === "subtract" ? "Minus " + t + " for the shooter" : "Everyone else takes " + t;
+  return lastMoonMode === "subtract" ? "Minus " + t + " for the shooter" : "Everyone else takes " + t;
 }
 function playCalmMoon(name) {
   var stage = $("moon-stage");
@@ -229,7 +240,7 @@ function deleteRound(idx) {
 /* ---------- hands list ---------- */
 function handTags(h, st) {
   var t = [];
-  if (h.moon !== null) t.push('<span class="tag moon">☾ Shot the moon: ' + esc(st.players[h.moon]) + "</span>");
+  if (h.moon !== null) t.push('<span class="tag moon">☾ Shot the moon: ' + esc(st.players[h.moon]) + " · " + esc(R.moonPhrase(h)) + "</span>");
   else if (isInt(h.queen)) t.push('<span class="tag q">♠Q ' + esc(st.players[h.queen]) + "</span>");
   if (isInt(h.jack)) t.push('<span class="tag j">J♦ ' + esc(st.players[h.jack]) + "</span>");
   return t.join("");
@@ -305,7 +316,7 @@ function scorecardHtml(st, opts) {
       var b = (h.moon === i ? '<em class="mt">☾</em>' : "") + (h.queen === i && h.moon === null ? '<em class="qb">♠Q</em>' : "") + (h.jack === i ? '<em class="jb">J♦</em>' : "");
       return "<td" + (h.moon === i ? ' class="shooter"' : "") + "><b>" + (h.scores[i] > 0 ? "+" : "") + h.scores[i] + "</b>" + b + "<small>" + run[k][i] + "</small></td>";
     }).join("") + '<td class="ps">' + esc(initialOf(st.players[h.dealer])) + " · " + esc(R.PASS_LABEL[h.pass].replace("Pass ", "")) +
-      (h.moon !== null ? '<br><span class="tag moon">☾ ' + esc(st.players[h.moon]) + "</span>" : "") +
+      (h.moon !== null ? '<br><span class="tag moon">☾ ' + esc(st.players[h.moon]) + " · " + esc(R.moonPhrase(h)) + "</span>" : "") +
       (opts.readOnly ? "" : ' <button type="button" class="link small" data-edit="' + k + '" aria-label="Edit hand ' + (k + 1) + '">Edit</button>') + "</td></tr>";
   }).join("");
   if (!rows) rows = '<tr><td colspan="' + (n + 2) + '" class="muted">No hands yet</td></tr>';
@@ -345,7 +356,7 @@ $("scorecard").addEventListener("pointerdown", function (e) { if (scAuto && !(e.
 /* ---------- winner screen ---------- */
 function bestMoment(st) {
   var moons = st.rounds.map(function (h, k) { return h.moon !== null ? k : -1; }).filter(function (k) { return k >= 0; });
-  if (moons.length) { var k = moons[moons.length - 1]; return st.players[st.rounds[k].moon] + " shot the moon in hand " + (k + 1); }
+  if (moons.length) { var k = moons[moons.length - 1], h = st.rounds[k]; return st.players[h.moon] + " shot the moon in hand " + (k + 1) + " (" + R.moonPhrase(h) + ")"; }
   var act = R.activeSeats(st), best = null;
   act.forEach(function (i) {
     var clean = st.rounds.filter(function (h) { return h.scores[i] <= 0; }).length;

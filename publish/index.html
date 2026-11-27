@@ -525,12 +525,16 @@ label.field { margin-bottom: 12px; }
 @keyframes pop { 50% { transform: scale(1.12); } }
 .card.locked .c-entry { opacity: .45; }
 .card.dragging { box-shadow: inset 4px 0 0 var(--pc), 0 0 0 3px #f3e2a8; }
-.c-drag { position: absolute; inset: 0; background: rgba(10,18,16,.95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 10px; pointer-events: none; border-radius: 18px; }
+.c-drag { position: absolute; z-index: 6; left: 0; right: 0; top: 0; bottom: 0; width: 100%; height: 100%; margin: 0;
+  grid-column: 1 / -1; grid-row: 1 / -1;
+  background: rgba(10,18,16,.96); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 12px 10px; pointer-events: none; border-radius: 18px; touch-action: none; }
 .c-drag[hidden] { display: none; }
-.cd-num { font-size: clamp(56px, 12vh, 120px); font-weight: 900; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
-.cd-scale { width: 90%; height: 12px; border-radius: 99px; background: #2c3832; overflow: hidden; }
-.cd-scale i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #5ee08f, #e9c45a, #ff6b78); }
-.cd-range { width: 90%; display: flex; justify-content: space-between; font-size: .8rem; color: var(--dim); font-weight: 700; }
+.cd-num { font-size: clamp(40px, 9vh, 96px); font-weight: 900; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
+.cd-slider { position: relative; width: min(92%, 440px); height: 44px; touch-action: none; }
+.cd-track { position: absolute; left: 17px; right: 17px; top: 50%; height: 14px; margin-top: -7px; border-radius: 99px; background: #efe6d4; box-shadow: inset 0 1px 2px rgba(0,0,0,.35), 0 0 0 1px rgba(255,255,255,.45); overflow: hidden; }
+.cd-track i { display: block; height: 14px; width: 0; background: linear-gradient(90deg, #5ee08f, #e9c45a); border-radius: 99px; }
+.cd-thumb { position: absolute; left: 0; top: 50%; width: 34px; height: 34px; border-radius: 50%; background: #fffdf7; box-shadow: 0 2px 8px rgba(0,0,0,.55), 0 0 0 3px #1c1916, 0 0 0 6px #e9c45a; transform: translate3d(17px,-50%,0); }
+.cd-range { width: min(92%, 440px); display: flex; justify-content: space-between; font-size: .85rem; color: #f4efe6; font-weight: 700; }
 .cd-moon { opacity: 0; width: 90%; font-size: .8rem; color: #e5dcff; text-align: center; transition: opacity .15s; }
 .cd-moon.on { opacity: 1; }
 .cd-moon .bar { height: 6px; background: #2b2350; border-radius: 99px; overflow: hidden; margin-top: 4px; }
@@ -563,20 +567,35 @@ label.field { margin-bottom: 12px; }
 .bar-btn svg { width: 22px; height: 22px; fill: currentColor; }
 .bar-btn:disabled { opacity: .4; }
 
-/* shared table (rotated, 4 players) */
-.lay-table { padding: 0; max-width: none; }
-.tbl { position: absolute; inset: 0; display: grid; gap: 8px; padding: 8px;
-  grid-template-columns: minmax(0, 26vmin) minmax(0, 1fr) minmax(0, 26vmin); grid-template-rows: minmax(0, 25vh) minmax(0, 1fr) minmax(0, 25vh); }
-.tq { position: relative; min-width: 0; min-height: 0; }
-.tq.q-top { grid-column: 1 / 4; grid-row: 1; }
-.tq.q-bottom { grid-column: 1 / 4; grid-row: 3; }
-.tq.q-left { grid-column: 1; grid-row: 2; }
-.tq.q-right { grid-column: 3; grid-row: 2; }
-.seat { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(var(--rot)); }
-.seat .card { width: 100%; height: 100%; }
-.hubx { grid-column: 2; grid-row: 2; min-width: 0; min-height: 0; display: flex; flex-direction: column; justify-content: center; gap: 6px; overflow: hidden; }
-.lay-table .g-title { font-size: 1rem; }
-.lay-table .bar-btn { min-height: 46px; font-size: .66rem; }
+/* shared table: iPad standing on one side, every tile upright */
+.lay-table { padding: calc(8px + var(--safe-t)) 12px calc(6px + var(--safe-b)); max-width: 1600px; }
+.lay-table .cards { grid-auto-rows: minmax(0, 1fr); align-content: stretch; gap: 10px; }
+.lay-table.n3 .cards { grid-template-columns: 1fr; }
+.lay-table.n4 .cards, .lay-table.n5 .cards, .lay-table.n6 .cards { grid-template-columns: 1fr 1fr; }
+.lay-table.n5 .cards .card:last-child { grid-column: 1 / -1; }
+@media (orientation: landscape) {
+  .lay-table.n3 .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lay-table.n4 .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .lay-table.n5 .cards { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .lay-table.n5 .cards .card { grid-column: span 2; }
+  .lay-table.n5 .cards .card:nth-child(4) { grid-column: 2 / span 2; }
+  .lay-table.n5 .cards .card:nth-child(5) { grid-column: 4 / span 2; }
+  .lay-table.n6 .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .lay-table.n6 .cards .card:last-child { grid-column: auto; }
+}
+.lay-table .c-name { font-size: clamp(1.05rem, 2.6vh, 1.7rem); }
+.lay-table .c-total b { font-size: clamp(36px, 8vh, 112px); }
+.lay-table.n5 .c-total b, .lay-table.n6 .c-total b { font-size: clamp(32px, 6.2vh, 84px); }
+.lay-table .c-pass, .lay-table .c-tl, .lay-table .c-after { font-size: clamp(.78rem, 1.8vh, 1rem); }
+.lay-table .c-entry { height: clamp(52px, 7vh, 84px); grid-template-columns: minmax(48px, 72px) minmax(48px, 1fr) minmax(48px, 72px); }
+.lay-table .step, .lay-table .c-val { min-height: 56px; font-size: clamp(1.4rem, 3vh, 2.2rem); }
+.lay-table .c-acts button { min-height: 48px; min-width: 52px; font-size: 1rem; }
+.lay-table .g-title { font-size: clamp(1.05rem, 2.4vh, 1.45rem); }
+.lay-table .bar-btn { min-height: 52px; font-size: .8rem; }
+.lay-table .moon-main, .lay-table .primary.save { min-height: 58px; }
+.lay-table .cd-num { font-size: clamp(48px, 12vh, 140px); }
+.moon-choice { grid-template-columns: 1fr; margin: 8px 0 12px; }
+.moon-choice button { min-height: 58px; font-size: 1rem; }
 
 /* keypad */
 .keypad-back { position: fixed; inset: 0; z-index: 118; background: rgba(0,0,0,.55); display: flex; align-items: flex-end; justify-content: center; padding: 10px 10px calc(10px + var(--safe-b)); }
@@ -799,13 +818,14 @@ label.field { margin-bottom: 12px; }
       <div class="field-label">Screen</div>
       <div class="seg" role="group" aria-label="Screen layout">
         <button type="button" id="layout-phone" aria-pressed="true">Pass the phone<small>Upright cards for everyone</small></button>
-        <button type="button" id="layout-table" aria-pressed="false">Shared table<small>Lies flat, each side faces a player (4 players)</small></button>
+        <button type="button" id="layout-table" aria-pressed="false">Shared table<small>Upright tiles for an iPad on a stand</small></button>
       </div>
 
       <div class="kicker sp">House rules</div>
       <div class="preset-row"><select id="preset-select" aria-label="House rules preset"></select><button type="button" class="ghost" id="save-preset">Save as preset</button></div>
-      <div class="field-label">If someone shoots the moon</div>
-      <div class="seg" role="group" aria-label="Moon scoring">
+      <div class="field-label">Default when someone shoots the moon</div>
+      <p class="lede">Pre-selected on each moon hand. You still choose add or subtract every time.</p>
+      <div class="seg" role="group" aria-label="Default moon scoring">
         <button type="button" id="mode-add" aria-pressed="true">+26 to everyone else<small>Shooter scores 0</small></button>
         <button type="button" id="mode-sub" aria-pressed="false">−26 to the shooter<small>Others score 0; can go below 0</small></button>
       </div>
@@ -1634,7 +1654,8 @@ label.field { margin-bottom: 12px; }
     };
   }
   function rulesSummary(r) {
-    var bits = [r.moonMode === "subtract" ? "Moon −26 to shooter" : "Moon +26 to others"];
+    var t = pointsTotal(r);
+    var bits = ["Moon each hand, default " + (r.moonMode === "subtract" ? "−" + t + " to shooter" : "+" + t + " to others")];
     if (r.spot) bits.push("Spot hearts");
     if (r.jack) bits.push("J♦ −10");
     if (r.passMode === "nohold") bits.push("No hold hands");
@@ -1756,18 +1777,53 @@ label.field { margin-bottom: 12px; }
     if (st.out && st.out.some(Boolean)) h.out = st.out.map(Boolean);
     return h;
   }
-  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass) {
+  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass, moonMode) {
     var n = st.players.length, active = activeSeats(st), total = pointsTotal(st.rules);
+    var mode = moonMode === "subtract" || moonMode === "add" ? moonMode : (st.rules && st.rules.moonMode === "subtract" ? "subtract" : "add");
     var scores = range(n).map(function (s) {
       if (active.indexOf(s) === -1) return 0;
-      if (st.rules.moonMode === "subtract") return s === shooter ? -total : 0;
+      if (mode === "subtract") return s === shooter ? -total : 0;
       return s === shooter ? 0 : total;
     });
     var j = st.rules.jack && isInt(jack) ? jack : null;
     if (j !== null) scores[j] -= 10;
     var k = isInt(handIndex) ? handIndex : st.rounds.length;
-    return withOut({ scores: scores, pts: null, moon: shooter, pass: pass || passFor(k, active.length, st.rules.passMode),
+    return withOut({ scores: scores, pts: null, moon: shooter, moonMode: mode, pass: pass || passFor(k, active.length, st.rules.passMode),
       dealer: isInt(dealer) ? dealer : currentDealer(st), queen: shooter, jack: j }, st);
+  }
+  // How many points the moon pile was, after undoing a J♦ −10 on the same hand.
+  function moonPoints(h) {
+    if (!h || !isInt(h.moon) || !h.scores) return 0;
+    var jackHere = isInt(h.jack), i, best, n;
+    if (h.moonMode === "subtract") {
+      n = -h.scores[h.moon];
+      if (jackHere && h.jack === h.moon) n -= 10;
+      return n;
+    }
+    best = 0;
+    for (i = 0; i < h.scores.length; i++) {
+      if (i === h.moon) continue;
+      n = h.scores[i] + (jackHere && h.jack === i ? 10 : 0);
+      if (n > best) best = n;
+    }
+    return best;
+  }
+  function moonPhrase(h) {
+    if (!h || !isInt(h.moon)) return "";
+    var n = moonPoints(h);
+    return h.moonMode === "subtract" ? "−" + n + " to the shooter" : "+" + n + " to everyone else";
+  }
+  // Scores are the source of truth for old saves that had one moon setting for the whole game.
+  function inferMoonMode(scores, shooter, fallback) {
+    if (!scores || !isInt(shooter) || shooter < 0 || shooter >= scores.length) {
+      return fallback === "subtract" || fallback === "add" ? fallback : null;
+    }
+    var self = scores[shooter], othersMax = -Infinity, i;
+    for (i = 0; i < scores.length; i++) if (i !== shooter && scores[i] > othersMax) othersMax = scores[i];
+    if (self <= -13 && othersMax <= 0) return "subtract";
+    if (othersMax >= 13) return "add";
+    if (fallback === "subtract" || fallback === "add") return fallback;
+    return null;
   }
 
   /* ---------- totals, standings ---------- */
@@ -1814,7 +1870,7 @@ label.field { margin-bottom: 12px; }
 
   function handRecap(r, players) {
     if (isInt(r.moon)) {
-      var s = players[r.moon] + " shot the moon";
+      var s = players[r.moon] + " shot the moon (" + moonPhrase(r) + ")";
       if (isInt(r.jack)) s += "; " + players[r.jack] + " took the J♦";
       return s;
     }
@@ -1859,7 +1915,7 @@ label.field { margin-bottom: 12px; }
       (r.pts == null || (Array.isArray(r.pts) && r.pts.length === n && r.pts.every(isInt)));
   }
   // Fill fields older saves didn't have (pts, dealer, queen).
-  function upgradeHand(r, k, n, firstDealer) {
+  function upgradeHand(r, k, n, firstDealer, legacyMoon) {
     var h = { scores: r.scores.slice(), moon: isInt(r.moon) ? r.moon : null, pass: r.pass,
       pts: Array.isArray(r.pts) ? r.pts.slice() : (isInt(r.moon) ? null : r.scores.slice()),
       dealer: isInt(r.dealer) && r.dealer >= 0 && r.dealer < n ? r.dealer : mod((firstDealer || 0) + k, n),
@@ -1868,6 +1924,11 @@ label.field { margin-bottom: 12px; }
     if (h.queen === null) {
       if (h.moon !== null) h.queen = h.moon;
       else if (h.pts) { var c = h.pts.map(function (p, i) { return p >= 13 ? i : -1; }).filter(function (i) { return i >= 0; }); if (c.length === 1) h.queen = c[0]; }
+    }
+    if (h.moon !== null) {
+      var explicit = r.moonMode === "add" || r.moonMode === "subtract" ? r.moonMode : null;
+      var fromScores = inferMoonMode(h.scores, h.moon, null);
+      h.moonMode = fromScores || explicit || (legacyMoon === "subtract" ? "subtract" : "add");
     }
     return h;
   }
@@ -1879,7 +1940,8 @@ label.field { margin-bottom: 12px; }
       ? p.players.map(function (x, i) { return normName(x, "Player " + (i + 1)); }) : ["Player 1", "Player 2", "Player 3", "Player 4"];
     var n = players.length;
     var fd = isInt(p.firstDealer) ? mod(p.firstDealer, n) : 0;
-    var rounds = (Array.isArray(p.rounds) ? p.rounds : []).filter(function (r) { return validHand(r, n); }).map(function (r, k) { return upgradeHand(r, k, n, fd); });
+    var legacyMoon = (p.rules && p.rules.moonMode) || p.moonMode;
+    var rounds = (Array.isArray(p.rounds) ? p.rounds : []).filter(function (r) { return validHand(r, n); }).map(function (r, k) { return upgradeHand(r, k, n, fd, legacyMoon); });
     var st = {
       version: 3, id: typeof p.id === "string" && p.id ? p.id.slice(0, 80) : makeId(t), started: !!p.started,
       startedAt: isInt(p.startedAt) ? p.startedAt : t, players: players,
@@ -1903,7 +1965,7 @@ label.field { margin-bottom: 12px; }
       players: st.players.slice(), colors: st.colors.slice(), out: st.out.slice(), target: st.target, rules: clone(st.rules),
       moonMode: st.rules.moonMode, firstDealer: st.firstDealer, rounds: clone(st.rounds), totals: tots,
       winners: w, winnerNames: w.map(function (i) { return st.players[i]; }),
-      moons: st.rounds.map(function (r, k) { return isInt(r.moon) ? { round: k, player: r.moon, name: st.players[r.moon] } : null; }).filter(Boolean),
+      moons: st.rounds.map(function (r, k) { return isInt(r.moon) ? { round: k, player: r.moon, name: st.players[r.moon], moonMode: r.moonMode === "subtract" ? "subtract" : "add" } : null; }).filter(Boolean),
       hands: st.rounds.length
     };
   }
@@ -1996,7 +2058,7 @@ label.field { margin-bottom: 12px; }
 
   function csvCell(v) { var s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function toCsv(games) {
-    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner"]];
+    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner", "moon_choice"]];
     (games || []).forEach(function (g) {
       var n = g.players.length, run = runningTotals(g.rounds, n), act = range(n).filter(function (i) { return !(g.out && g.out[i]); });
       var rulesTxt = rulesSummary(sanitizeRules(g.rules, g.moonMode));
@@ -2004,7 +2066,8 @@ label.field { margin-bottom: 12px; }
         var rk = ranks(run[k], act);
         g.players.forEach(function (p, i) {
           rows.push([g.id, new Date(g.finishedAt).toISOString(), g.target, rulesTxt, k + 1, p, i + 1, r.pts ? r.pts[i] : "", r.scores[i], run[k][i], rk[i] || "",
-            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : ""]);
+            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : "",
+            isInt(r.moon) ? (r.moonMode === "subtract" ? "subtract" : "add") : ""]);
         });
       });
     });
@@ -2052,7 +2115,7 @@ label.field { margin-bottom: 12px; }
     COLORS: COLORS, MIN_PLAYERS: MIN_PLAYERS, MAX_PLAYERS: MAX_PLAYERS, PASS_LABEL: PASS_LABEL,
     isInt: isInt, defaultRules: defaultRules, sanitizeRules: sanitizeRules, rulesSummary: rulesSummary, pointsTotal: pointsTotal, cardsInfo: cardsInfo,
     activeSeats: activeSeats, passCycle: passCycle, passFor: passFor, passTarget: passTarget, nextDealer: nextDealer, currentDealer: currentDealer,
-    entryBounds: entryBounds, queenCandidates: queenCandidates, handStatus: handStatus, blankEntry: blankEntry, makeHand: makeHand, makeMoonHand: makeMoonHand,
+    entryBounds: entryBounds, queenCandidates: queenCandidates, handStatus: handStatus, blankEntry: blankEntry, makeHand: makeHand, makeMoonHand: makeMoonHand, moonPhrase: moonPhrase,
     totals: totals, runningTotals: runningTotals, leaders: leaders, losers: losers, ranks: ranks, isOver: isOver, winners: winners, handRecap: handRecap,
     makeId: makeId, normName: normName, nameKey: nameKey, isPlaceholder: isPlaceholder, newGame: newGame, validHand: validHand, sanitizeState: sanitizeState,
     buildRecord: buildRecord, validRecord: validRecord, normalizeRecord: normalizeRecord, parseBackup: parseBackup, mergeGames: mergeGames, updateRoster: updateRoster,
@@ -3053,10 +3116,6 @@ label.field { margin-bottom: 12px; }
 /* Hearts Table v5 app, part 1: state, storage, migration, feedback, small UI helpers. */
 var L = window.HeartsLogic, R = window.HeartsRules, M = window.HeartsMoon, DB = window.HeartsDB;
 var LEGACY_KEYS = { state: "hearts-scorekeeper-v1", draft: "hearts-draft-v1", bag: "hearts-moon-bag-v1" };
-var TABLE_SEATS = [ // shared-table mode, 4 players: bottom, left, top, right (clockwise)
-  { pos: "bottom", rot: 0, label: "Bottom" }, { pos: "left", rot: 90, label: "Left" },
-  { pos: "top", rot: 180, label: "Top" }, { pos: "right", rot: 270, label: "Right" }
-];
 var SEAT_WORD = ["Seat 1", "Seat 2", "Seat 3", "Seat 4", "Seat 5", "Seat 6"];
 var PHONE_TUNE = { unit: 22, maxGain: 2.2 };   // pass-the-phone slide: 22 px per point, gentle acceleration
 var TABLE_TUNE = null;                         // shared table keeps the original feel
@@ -3331,17 +3390,18 @@ function download(name, text, type) {
 }
 
 /* ---- 10-table.js ---- */
-/* Part 2: the game screen. Pass-the-phone (upright, default) and shared-table (rotated, 4 players) layouts. */
+/* Part 2: the game screen. Pass-the-phone (default) and shared-table (upright tiles for a stand). */
 var built = { key: "", mode: "phone" };
 var drags = {};        // pointerId -> drag
 var dragBySeat = {};   // seat -> drag
 var keypadSeat = null, keypadBuf = "", keypadFresh = true;
 
 function layoutMode() {
-  if (!state) return "phone";
-  return settings.layout === "table" && state.players.length === 4 && R.activeSeats(state).length === 4 ? "table" : "phone";
+  if (!state || settings.layout !== "table") return "phone";
+  var n = R.activeSeats(state).length;
+  return n >= 3 && n <= 6 ? "table" : "phone";
 }
-function seatRot(i) { return layoutMode() === "table" ? TABLE_SEATS[i].rot : 0; }
+function seatRot() { return 0; }
 
 // Everything about the hand being entered (or edited).
 function ctx() {
@@ -3379,7 +3439,9 @@ function cardHtml(i) {
       (jack ? '<button type="button" class="c-j" id="cj-' + i + '" aria-pressed="false">J♦</button>' : "") +
       '<button type="button" class="c-moon" id="cmoon-' + i + '" hidden>🌙 Moon</button>' +
     '</div>' +
-    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div><div class="cd-scale"><i id="cdbar-' + i + '"></i></div>' +
+    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div>' +
+      '<div class="cd-slider" id="cdslider-' + i + '" role="slider" aria-valuemin="0" aria-valuemax="26" aria-valuenow="0" aria-label="' + esc(state.players[i]) + ' score">' +
+        '<div class="cd-track"><i id="cdbar-' + i + '"></i></div><span class="cd-thumb" id="cdthumb-' + i + '"></span></div>' +
       '<div class="cd-range"><span id="cdmin-' + i + '">0</span><span id="cdcap-' + i + '"></span><span id="cdmax-' + i + '">26</span></div>' +
       '<div class="cd-moon" id="cdmoon-' + i + '"><span>🌙 keep pushing to shoot the moon</span><div class="bar"><i></i></div></div></div>' +
   '</div>';
@@ -3417,13 +3479,7 @@ function buildGame() {
   built = { key: key, mode: mode };
   var g = $("game");
   g.className = "game lay-" + mode + " n" + act.length;
-  if (mode === "table") {
-    g.innerHTML = '<div class="tbl">' + TABLE_SEATS.map(function (s, i) {
-      return '<div class="tq q-' + s.pos + '"><div class="seat" id="seat-' + i + '" style="--rot:' + s.rot + 'deg">' + cardHtml(i) + "</div></div>";
-    }).join("") + '<div class="hubx">' + controlsHtml() + entryHtml() + barHtml() + "</div></div>";
-  } else {
-    g.innerHTML = controlsHtml() + '<section class="cards" id="cards">' + act.map(cardHtml).join("") + "</section>" + entryHtml() + barHtml();
-  }
+  g.innerHTML = controlsHtml() + '<section class="cards" id="cards">' + act.map(cardHtml).join("") + "</section>" + entryHtml() + barHtml();
   act.forEach(wireCard);
   $("save-btn").addEventListener("click", trySave);
   $("moon-btn").addEventListener("click", function () { askMoon(null); });
@@ -3436,20 +3492,9 @@ function buildGame() {
   $("edit-cancel").addEventListener("click", cancelEdit);
   $("g-over-results").addEventListener("click", function () { showWinnerScreen(true); });
   $("g-over-new").addEventListener("click", askNewGame);
-  sizeSeats();
 }
 
-function sizeSeats() {
-  if (built.mode !== "table") return;
-  TABLE_SEATS.forEach(function (s, i) {
-    var seat = $("seat-" + i);
-    if (!seat) return;
-    var r = seat.parentNode.getBoundingClientRect();
-    var swap = s.rot === 90 || s.rot === 270;
-    seat.style.width = (swap ? r.height : r.width) + "px";
-    seat.style.height = (swap ? r.width : r.height) + "px";
-  });
-}
+function sizeSeats() { /* stand layout sizes itself with the grid */ }
 
 function wireCard(i) {
   var card = $("card-" + i);
@@ -3604,7 +3649,7 @@ function paintAll() {
   $("g-target").textContent = "Game to " + state.target;
   paintClock();
   $("edit-banner").hidden = !c.editing;
-  if (c.editing) $("edit-text").textContent = "Editing hand " + (c.index + 1) + " · totals shown as of that hand";
+  if (c.editing) $("edit-text").textContent = "Editing hand " + (c.index + 1) + " · totals shown as of that hand" + (c.hand && c.hand.moon !== null ? " · " + R.moonPhrase(c.hand) : "");
 
   // meter + status
   var pct = Math.max(0, Math.min(100, hs.sum / total * 100));
@@ -3719,8 +3764,25 @@ function onMove(e) {
 }
 function paintDrag(d, b) {
   var i = d.seat, v = d.st.value, over = d.st.over || 0;
+  var tune = built.mode === "table" ? TABLE_TUNE : PHONE_TUNE;
+  var unit = tune && tune.unit > 0 ? tune.unit : L.JOG_BASE_PX;
+  var shown = v + (d.st.accum || 0) / unit;
+  if (shown < b.min) shown = b.min;
+  if (shown > b.max) shown = b.max;
+  var pct = b.max > b.min ? (shown - b.min) / (b.max - b.min) * 100 : 0;
   $("cdnum-" + i).textContent = String(v);
-  $("cdbar-" + i).style.width = (b.max ? v / b.max * 100 : 0) + "%";
+  var slider = $("cdslider-" + i);
+  if (slider) {
+    slider.setAttribute("aria-valuemax", String(b.max));
+    slider.setAttribute("aria-valuenow", String(v));
+    void slider.offsetWidth;
+    var track = slider.querySelector(".cd-track");
+    var inner = track ? track.clientWidth : 0;
+    $("cdbar-" + i).style.width = Math.round(inner * pct / 100) + "px";
+    // translate3d, not left: iOS Safari often waits until touchend to paint left/width.
+    var x = 17 + Math.max(0, (slider.clientWidth || 0) - 34) * pct / 100;
+    $("cdthumb-" + i).style.transform = "translate3d(" + x.toFixed(1) + "px,-50%,0)";
+  }
   $("cdmin-" + i).textContent = "0";
   $("cdmax-" + i).textContent = String(b.max);
   $("cdcap-" + i).textContent = v === b.max && b.max < handTotal() ? "the rest" : "";
@@ -3908,6 +3970,7 @@ function commitHand(hand, c) {
 var pendingSheet = false;
 
 /* ---------- shooting the moon ---------- */
+var lastMoonMode = "add";
 function askMoon(seat, fromValue) {
   if (locked() || moonBusy || !state) return;
   var c = ctx();
@@ -3923,44 +3986,54 @@ function askMoon(seat, fromValue) {
     return;
   }
   var jack = state.rules.jack ? (isInt(entry.jack) ? entry.jack : null) : null;
+  var mode = state.rules.moonMode === "subtract" ? "subtract" : "add";
+  if (c.hand && c.hand.moon === seat && (c.hand.moonMode === "add" || c.hand.moonMode === "subtract")) mode = c.hand.moonMode;
+  var total = handTotal();
   var draw = function () {
-    var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass);
+    var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass, mode);
     var n = state.players.length, run = R.runningTotals(state.rounds, n);
     var before = c.editing ? (c.index > 0 ? run[c.index - 1] : state.players.map(function () { return 0; })) : R.totals(state.rounds, n);
-    var total = handTotal();
     var rows = c.active.map(function (i) {
       return "<tr><td>" + avatar(state, i) + " " + esc(state.players[i]) + "</td><td>" + before[i] + '</td><td class="d">' + (hand.scores[i] >= 0 ? "+" : "") + hand.scores[i] + "</td><td><b>" + (before[i] + hand.scores[i]) + "</b></td></tr>";
     }).join("");
-    var how = state.rules.moonMode === "subtract" ? esc(state.players[seat]) + " gets −" + total + "; everyone else 0." : esc(state.players[seat]) + " scores 0; everyone else +" + total + ".";
+    var how = mode === "subtract" ? esc(state.players[seat]) + " gets −" + total + "; everyone else 0." : esc(state.players[seat]) + " scores 0; everyone else +" + total + ".";
     var jackHtml = state.rules.jack ? '<div class="field-label">Who took the J♦ (−10)?</div><div class="chips jack-pick">' + c.active.map(function (i) {
       return '<button type="button" data-j="' + i + '" aria-pressed="' + (jack === i ? "true" : "false") + '">' + esc(state.players[i]) + "</button>";
     }).join("") + "</div>" : "";
-    return "<p>" + (fromValue ? esc(state.players[seat]) + " took all " + total + " points: that is shooting the moon. " : "") + how + "</p>" +
+    var choice = '<div class="seg moon-choice" role="group" aria-label="How to score this moon">' +
+      '<button type="button" id="moon-add" aria-pressed="' + (mode === "add" ? "true" : "false") + '">+' + total + ' to everyone else<small>Shooter scores 0</small></button>' +
+      '<button type="button" id="moon-sub" aria-pressed="' + (mode === "subtract" ? "true" : "false") + '">−' + total + ' to the shooter<small>Others score 0</small></button></div>';
+    return "<p>" + (fromValue ? esc(state.players[seat]) + " took all " + total + " points. " : "") +
+      "Choose for this hand only. " + how + "</p>" + choice +
       '<table class="moon-preview"><thead><tr><th>Player</th><th>Now</th><th>Hand</th><th>New total</th></tr></thead><tbody>' + rows + "</tbody></table>" + jackHtml;
   };
   var confirm = function () {
     if (state.rules.jack && jack === null) { toast("Pick who took the J♦ first."); sfx("error"); return; }
     closeModal();
-    triggerMoon(seat, jack);
+    triggerMoon(seat, jack, mode);
   };
   openModal(state.players[seat] + " shot the moon?", draw(), [
     { label: fromValue ? "Cancel" : "Not a moon", className: "ghost", id: "moon-cancel", onClick: closeModal },
-    { label: "🌙 Shoot the moon", className: "primary", id: "moon-confirm", onClick: confirm }
+    { label: "🌙 Score this hand", className: "primary", id: "moon-confirm", onClick: confirm }
   ]);
-  faceModal(seatRot(seat));
-  var wireJack = function () {
+  faceModal(0);
+  var wireMoon = function () {
     $("modal-body").querySelectorAll("[data-j]").forEach(function (b) {
-      b.addEventListener("click", function () { jack = Number(b.getAttribute("data-j")); $("modal-body").innerHTML = draw(); wireJack(); });
+      b.addEventListener("click", function () { jack = Number(b.getAttribute("data-j")); $("modal-body").innerHTML = draw(); wireMoon(); });
     });
+    var add = $("moon-add"), sub = $("moon-sub");
+    if (add) add.addEventListener("click", function () { mode = "add"; $("modal-body").innerHTML = draw(); wireMoon(); });
+    if (sub) sub.addEventListener("click", function () { mode = "subtract"; $("modal-body").innerHTML = draw(); wireMoon(); });
   };
-  wireJack();
+  wireMoon();
 }
 
-function triggerMoon(seat, jack) {
+function triggerMoon(seat, jack, mode) {
   if (moonBusy) return;
   endAllDrags();
   var c = ctx();
-  var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass);
+  var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass, mode);
+  lastMoonMode = hand.moonMode;
   moonBusy = true; // so the winner screen / scorecard waits for the animation
   startMoonAnimation(seat);
   commitHand(hand, c);
@@ -3984,7 +4057,7 @@ function moonDone() {
 }
 function moonText() {
   var t = handTotal();
-  return state.rules.moonMode === "subtract" ? "Minus " + t + " for the shooter" : "Everyone else takes " + t;
+  return lastMoonMode === "subtract" ? "Minus " + t + " for the shooter" : "Everyone else takes " + t;
 }
 function playCalmMoon(name) {
   var stage = $("moon-stage");
@@ -4087,7 +4160,7 @@ function deleteRound(idx) {
 /* ---------- hands list ---------- */
 function handTags(h, st) {
   var t = [];
-  if (h.moon !== null) t.push('<span class="tag moon">☾ Shot the moon: ' + esc(st.players[h.moon]) + "</span>");
+  if (h.moon !== null) t.push('<span class="tag moon">☾ Shot the moon: ' + esc(st.players[h.moon]) + " · " + esc(R.moonPhrase(h)) + "</span>");
   else if (isInt(h.queen)) t.push('<span class="tag q">♠Q ' + esc(st.players[h.queen]) + "</span>");
   if (isInt(h.jack)) t.push('<span class="tag j">J♦ ' + esc(st.players[h.jack]) + "</span>");
   return t.join("");
@@ -4163,7 +4236,7 @@ function scorecardHtml(st, opts) {
       var b = (h.moon === i ? '<em class="mt">☾</em>' : "") + (h.queen === i && h.moon === null ? '<em class="qb">♠Q</em>' : "") + (h.jack === i ? '<em class="jb">J♦</em>' : "");
       return "<td" + (h.moon === i ? ' class="shooter"' : "") + "><b>" + (h.scores[i] > 0 ? "+" : "") + h.scores[i] + "</b>" + b + "<small>" + run[k][i] + "</small></td>";
     }).join("") + '<td class="ps">' + esc(initialOf(st.players[h.dealer])) + " · " + esc(R.PASS_LABEL[h.pass].replace("Pass ", "")) +
-      (h.moon !== null ? '<br><span class="tag moon">☾ ' + esc(st.players[h.moon]) + "</span>" : "") +
+      (h.moon !== null ? '<br><span class="tag moon">☾ ' + esc(st.players[h.moon]) + " · " + esc(R.moonPhrase(h)) + "</span>" : "") +
       (opts.readOnly ? "" : ' <button type="button" class="link small" data-edit="' + k + '" aria-label="Edit hand ' + (k + 1) + '">Edit</button>') + "</td></tr>";
   }).join("");
   if (!rows) rows = '<tr><td colspan="' + (n + 2) + '" class="muted">No hands yet</td></tr>';
@@ -4203,7 +4276,7 @@ $("scorecard").addEventListener("pointerdown", function (e) { if (scAuto && !(e.
 /* ---------- winner screen ---------- */
 function bestMoment(st) {
   var moons = st.rounds.map(function (h, k) { return h.moon !== null ? k : -1; }).filter(function (k) { return k >= 0; });
-  if (moons.length) { var k = moons[moons.length - 1]; return st.players[st.rounds[k].moon] + " shot the moon in hand " + (k + 1); }
+  if (moons.length) { var k = moons[moons.length - 1], h = st.rounds[k]; return st.players[h.moon] + " shot the moon in hand " + (k + 1) + " (" + R.moonPhrase(h) + ")"; }
   var act = R.activeSeats(st), best = null;
   act.forEach(function (i) {
     var clean = st.rounds.filter(function (h) { return h.scores[i] <= 0; }).length;
@@ -4425,7 +4498,10 @@ function renderDetail(body, g) {
   body.innerHTML =
     '<div class="detail-head"><div class="dh-win"><svg class="ic"><use href="#ic-trophy"/></svg>' + esc(who) + "</div>" +
     '<div class="dh-meta">' + esc(fmtDate(g.finishedAt)) + " · " + plural(g.hands, "hand") + " · " + R.formatDuration(g.durationMs) + " · game to " + g.target + "</div>" +
-    (g.moons.length ? '<div class="dh-moons">☾ ' + g.moons.map(function (m) { return esc(m.name) + " (hand " + (m.round + 1) + ")"; }).join(", ") + "</div>" : "") + "</div>" +
+    (g.moons.length ? '<div class="dh-moons">☾ ' + g.moons.map(function (m) {
+      var how = m.moonMode === "subtract" ? "− to the shooter" : "+ to everyone else";
+      return esc(m.name) + " (hand " + (m.round + 1) + ", " + how + ")";
+    }).join(", ") + "</div>" : "") + "</div>" +
     scorecardHtml(st, { readOnly: true }) +
     '<div class="row-actions"><button type="button" class="primary" id="detail-rematch">Play again with these players</button><button type="button" class="ghost" id="detail-share">Share image</button></div>' +
     '<div class="row-actions"><button type="button" class="danger" id="detail-delete">Delete this game</button></div>';
@@ -4579,7 +4655,7 @@ function renderSetup() {
     var dup = keys[i] && keys.indexOf(keys[i]) !== i;
     return '<div class="sp-row' + (dup ? " bad" : "") + '"><span class="avatar" style="--pc:' + R.COLORS[i] + '" aria-hidden="true">' + esc(p.trim() ? initialOf(p) : String(i + 1)) + "</span>" +
       '<input type="text" id="setup-p' + i + '" maxlength="20" autocomplete="off" autocapitalize="words" enterkeyhint="next" list="roster-list" placeholder="Player ' + (i + 1) + ' name" aria-label="Player ' + (i + 1) + ' name" value="' + esc(p) + '">' +
-      '<span class="sp-seat">' + esc(SEAT_WORD[i]) + (d.players.length === 4 && settings.layout === "table" ? " · " + TABLE_SEATS[i].label : "") + "</span>" +
+      '<span class="sp-seat">' + esc(SEAT_WORD[i]) + "</span>" +
       '<button type="button" class="ghost small sp-del" data-del="' + i + '" aria-label="Remove player ' + (i + 1) + '"' + (d.players.length <= 3 ? " disabled" : "") + ">×</button></div>";
   }).join("");
   $("player-count-note").textContent = d.players.length + " players · " + R.cardsInfo(d.players.length).each + " cards each" + (R.cardsInfo(d.players.length).removed ? ", remove " + R.cardsInfo(d.players.length).removed : "");
@@ -4602,7 +4678,7 @@ function renderSetup() {
   $("setup-dealer").innerHTML = d.players.map(function (p, i) { return '<option value="' + i + '">' + esc(p.trim() || "Player " + (i + 1)) + "</option>"; }).join("");
   $("setup-dealer").value = String(d.firstDealer);
   // layout
-  var canTable = d.players.length === 4;
+  var canTable = d.players.length >= 3 && d.players.length <= 6;
   $("layout-phone").setAttribute("aria-pressed", settings.layout !== "table" || !canTable ? "true" : "false");
   $("layout-table").setAttribute("aria-pressed", settings.layout === "table" && canTable ? "true" : "false");
   $("layout-table").disabled = !canTable;
@@ -4764,7 +4840,7 @@ function toggleRow(id, title, desc, on) {
 }
 function showMenu() {
   openSheet("Menu", function (body) {
-    var canTable = state && state.players.length === 4 && R.activeSeats(state).length === 4;
+    var canTable = state && R.activeSeats(state).length >= 3 && R.activeSeats(state).length <= 6;
     body.innerHTML =
       '<div class="menu-group"><h3>Game</h3>' +
         menuItem("m-new", "New game", "Back to setup. Asks first if this game isn't finished.") +
@@ -4777,7 +4853,7 @@ function showMenu() {
         toggleRow("m-calm", "Less motion", "Small upright badge instead of the full-screen moon show; no confetti", settings.calm) +
         toggleRow("m-auto", "Show scorecard after each hand", "For 3 seconds, then back to the table", settings.autoSheet) +
         toggleRow("m-timer", "Game timer", "Clock and hands counter in the header", settings.timer) +
-        toggleRow("m-layout", "Shared table layout", canTable ? "Lay the device flat; each side faces its player (4 players)" : "Needs exactly 4 players in the game", settings.layout === "table" && canTable) +
+        toggleRow("m-layout", "Shared table layout", canTable ? "iPad on a stand: upright tiles, readable across the table" : "Needs 3 to 6 players still in the game", settings.layout === "table" && canTable) +
       "</div>" + menuItem("m-wake", "Keep the screen on", wakeSupported() ? "Status: " + (wake.status === "on" ? "on while this page is open" : "tap to turn on") : "Not supported here; see how to set Auto-Lock") + "</div>" +
       '<div class="menu-group"><h3>Data</h3>' +
         menuItem("m-history", "History and player stats", plural(gamesCount, "finished game") + " on this device. Profiles, head to head, CSV and JSON export.") +
@@ -4816,11 +4892,11 @@ function showPlayers() {
   if (!state) return;
   openSheet("Players and seats", function (body) {
     var act = R.activeSeats(state), tots = R.totals(state.rounds, state.players.length), mode = layoutMode();
-    body.innerHTML = '<p class="muted small">Seats go clockwise in play order. ' + (mode === "table" ? "Shared table: seat 1 is the bottom edge." : "") + "</p>" +
+    body.innerHTML = '<p class="muted small">Seats go clockwise in play order.' + (mode === "table" ? " Shared table: every tile reads upright, for an iPad on a stand." : "") + "</p>" +
       state.players.map(function (p, i) {
         var out = state.out[i];
         return '<div class="pl-row' + (out ? " out" : "") + '">' + avatar(state, i) +
-          '<div class="pl-main"><b>' + esc(p) + "</b><span>" + esc(SEAT_WORD[i] + (mode === "table" ? " — " + TABLE_SEATS[i].label + " edge" : "")) + " · " + tots[i] + " points" + (out ? " · left the game" : "") + "</span>" +
+          '<div class="pl-main"><b>' + esc(p) + "</b><span>" + esc(SEAT_WORD[i]) + " · " + tots[i] + " points" + (out ? " · left the game" : "") + "</span>" +
           '<input type="text" maxlength="20" id="pl-name-' + i + '" aria-label="Rename ' + esc(p) + '" value="' + esc(p) + '"></div>' +
           (out ? '<button type="button" class="ghost small" data-back="' + i + '">Bring back</button>'
                : '<button type="button" class="danger small" data-remove="' + i + '"' + (act.length <= 3 ? " disabled title=\"Hearts needs at least 3 players\"" : "") + ">Remove</button>") + "</div>";
@@ -4881,7 +4957,7 @@ function change(mutate) {
 var INTRO = [
   { t: "Tap a number to type it", b: "Each player has a card. Tap the “?” for a keypad with quick chips (0, 1, 2, 5, 13). Use − and + to nudge, or slide sideways across the card. A tap never clears anything." },
   { t: "The last player fills itself", b: "When everyone but one is set, the rest of the points go to the last player as a highlighted suggestion. Tap ✓ (or just Save). Save tells you exactly what's missing." },
-  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon” and confirm. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
+  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon”, then choose for that hand: add the points to everyone else, or take them off the shooter. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
 ];
 var introStep = 0, introDone = null;
 function showOnboarding(then) {
@@ -4912,7 +4988,7 @@ function showHelp() {
     body.innerHTML =
       '<div class="help-sec"><h3>Entering a hand</h3><ul>' +
         "<li><b>Tap</b> a player's number to type it on the keypad, or use a quick chip. Arrow keys and digits work on a keyboard.</li>" +
-        "<li><b>− / +</b> nudge by one. <b>Slide</b> sideways across a card for big changes; it snaps to whole points and shows a big live number.</li>" +
+        "<li><b>− / +</b> nudge by one. <b>Slide</b> sideways across a card for big changes; a slider with a track and thumb follows your finger and snaps to whole points.</li>" +
         "<li><b>The rest:</b> when only one player is left, they get the remaining points automatically (shown highlighted). Tap ✓ to confirm, or just Save. The keypad also has an “N left” chip.</li>" +
         "<li><b>Save</b> needs exactly " + tot + " points. If it's greyed out it says why, e.g. “Dave still to set” or “3 points left to give out”.</li>" +
         "<li><b>Clear</b> lives in the keypad and always asks first; the toast offers Undo. The keypad's Undo steps back that player's last value.</li></ul></div>" +
@@ -4920,8 +4996,8 @@ function showHelp() {
         "<li>Each heart is 1 point" + (r.spot ? " (Spot Hearts: ♥2–♥10 face value, J 11, Q 12, K 13, A 14)" : "") + ", the Queen of Spades (♠Q) is 13: " + tot + " points a hand. Lowest total wins when anyone reaches the end score.</li>" +
         "<li>The ♠Q holder is spotted automatically when only one player has 13+; otherwise tap ♠Q? on the right card. It shows on the scorecard and in each hand's recap.</li>" +
         (r.jack ? "<li>J♦ (Omnibus): tap J♦ on whoever took it; they get −10.</li>" : "") +
-        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. " +
-          (r.moonMode === "subtract" ? "This game: the shooter gets −" + tot + " (totals can go below 0) and others 0." : "This game: the shooter scores 0 and everyone else +" + tot + ".") + " The confirm shows the new totals first.</li></ul></div>" +
+        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. Each hand asks: everyone else +" + tot + ", or −" + tot + " for the shooter (totals can go below 0). " +
+          "The house-rules setting only pre-selects that choice" + (r.moonMode === "subtract" ? " (this game starts on −" + tot + ")." : " (this game starts on +" + tot + ").") + " The confirm shows the new totals first. Editing the hand lets you change that choice.</li></ul></div>" +
       '<div class="help-sec"><h3>Passing and dealing</h3><ul><li>' + n + " players: " + R.passCycle(n, r.passMode).map(function (p) { return R.PASS_LABEL[p]; }).join(", ") + ", then repeat. Pass 3 cards. " +
         R.cardsInfo(n).each + " cards each" + (R.cardsInfo(n).removed ? " (remove " + R.cardsInfo(n).removed + ")" : "") + ".</li><li>The deal moves one seat clockwise each hand; the card shows who deals and whom you pass to.</li></ul></div>" +
       '<div class="help-sec"><h3>Fixing mistakes</h3><ul><li>Undo / Redo in the bottom bar step through whole hands and player changes.</li><li>Hands → Edit reopens any hand with the same controls and shows that hand\'s totals; later totals are recalculated.</li></ul></div>' +

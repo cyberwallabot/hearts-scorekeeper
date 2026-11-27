@@ -37,7 +37,7 @@ function renderSetup() {
     var dup = keys[i] && keys.indexOf(keys[i]) !== i;
     return '<div class="sp-row' + (dup ? " bad" : "") + '"><span class="avatar" style="--pc:' + R.COLORS[i] + '" aria-hidden="true">' + esc(p.trim() ? initialOf(p) : String(i + 1)) + "</span>" +
       '<input type="text" id="setup-p' + i + '" maxlength="20" autocomplete="off" autocapitalize="words" enterkeyhint="next" list="roster-list" placeholder="Player ' + (i + 1) + ' name" aria-label="Player ' + (i + 1) + ' name" value="' + esc(p) + '">' +
-      '<span class="sp-seat">' + esc(SEAT_WORD[i]) + (d.players.length === 4 && settings.layout === "table" ? " · " + TABLE_SEATS[i].label : "") + "</span>" +
+      '<span class="sp-seat">' + esc(SEAT_WORD[i]) + "</span>" +
       '<button type="button" class="ghost small sp-del" data-del="' + i + '" aria-label="Remove player ' + (i + 1) + '"' + (d.players.length <= 3 ? " disabled" : "") + ">×</button></div>";
   }).join("");
   $("player-count-note").textContent = d.players.length + " players · " + R.cardsInfo(d.players.length).each + " cards each" + (R.cardsInfo(d.players.length).removed ? ", remove " + R.cardsInfo(d.players.length).removed : "");
@@ -60,7 +60,7 @@ function renderSetup() {
   $("setup-dealer").innerHTML = d.players.map(function (p, i) { return '<option value="' + i + '">' + esc(p.trim() || "Player " + (i + 1)) + "</option>"; }).join("");
   $("setup-dealer").value = String(d.firstDealer);
   // layout
-  var canTable = d.players.length === 4;
+  var canTable = d.players.length >= 3 && d.players.length <= 6;
   $("layout-phone").setAttribute("aria-pressed", settings.layout !== "table" || !canTable ? "true" : "false");
   $("layout-table").setAttribute("aria-pressed", settings.layout === "table" && canTable ? "true" : "false");
   $("layout-table").disabled = !canTable;
@@ -222,7 +222,7 @@ function toggleRow(id, title, desc, on) {
 }
 function showMenu() {
   openSheet("Menu", function (body) {
-    var canTable = state && state.players.length === 4 && R.activeSeats(state).length === 4;
+    var canTable = state && R.activeSeats(state).length >= 3 && R.activeSeats(state).length <= 6;
     body.innerHTML =
       '<div class="menu-group"><h3>Game</h3>' +
         menuItem("m-new", "New game", "Back to setup. Asks first if this game isn't finished.") +
@@ -235,7 +235,7 @@ function showMenu() {
         toggleRow("m-calm", "Less motion", "Small upright badge instead of the full-screen moon show; no confetti", settings.calm) +
         toggleRow("m-auto", "Show scorecard after each hand", "For 3 seconds, then back to the table", settings.autoSheet) +
         toggleRow("m-timer", "Game timer", "Clock and hands counter in the header", settings.timer) +
-        toggleRow("m-layout", "Shared table layout", canTable ? "Lay the device flat; each side faces its player (4 players)" : "Needs exactly 4 players in the game", settings.layout === "table" && canTable) +
+        toggleRow("m-layout", "Shared table layout", canTable ? "iPad on a stand: upright tiles, readable across the table" : "Needs 3 to 6 players still in the game", settings.layout === "table" && canTable) +
       "</div>" + menuItem("m-wake", "Keep the screen on", wakeSupported() ? "Status: " + (wake.status === "on" ? "on while this page is open" : "tap to turn on") : "Not supported here; see how to set Auto-Lock") + "</div>" +
       '<div class="menu-group"><h3>Data</h3>' +
         menuItem("m-history", "History and player stats", plural(gamesCount, "finished game") + " on this device. Profiles, head to head, CSV and JSON export.") +
@@ -274,11 +274,11 @@ function showPlayers() {
   if (!state) return;
   openSheet("Players and seats", function (body) {
     var act = R.activeSeats(state), tots = R.totals(state.rounds, state.players.length), mode = layoutMode();
-    body.innerHTML = '<p class="muted small">Seats go clockwise in play order. ' + (mode === "table" ? "Shared table: seat 1 is the bottom edge." : "") + "</p>" +
+    body.innerHTML = '<p class="muted small">Seats go clockwise in play order.' + (mode === "table" ? " Shared table: every tile reads upright, for an iPad on a stand." : "") + "</p>" +
       state.players.map(function (p, i) {
         var out = state.out[i];
         return '<div class="pl-row' + (out ? " out" : "") + '">' + avatar(state, i) +
-          '<div class="pl-main"><b>' + esc(p) + "</b><span>" + esc(SEAT_WORD[i] + (mode === "table" ? " — " + TABLE_SEATS[i].label + " edge" : "")) + " · " + tots[i] + " points" + (out ? " · left the game" : "") + "</span>" +
+          '<div class="pl-main"><b>' + esc(p) + "</b><span>" + esc(SEAT_WORD[i]) + " · " + tots[i] + " points" + (out ? " · left the game" : "") + "</span>" +
           '<input type="text" maxlength="20" id="pl-name-' + i + '" aria-label="Rename ' + esc(p) + '" value="' + esc(p) + '"></div>' +
           (out ? '<button type="button" class="ghost small" data-back="' + i + '">Bring back</button>'
                : '<button type="button" class="danger small" data-remove="' + i + '"' + (act.length <= 3 ? " disabled title=\"Hearts needs at least 3 players\"" : "") + ">Remove</button>") + "</div>";
@@ -339,7 +339,7 @@ function change(mutate) {
 var INTRO = [
   { t: "Tap a number to type it", b: "Each player has a card. Tap the “?” for a keypad with quick chips (0, 1, 2, 5, 13). Use − and + to nudge, or slide sideways across the card. A tap never clears anything." },
   { t: "The last player fills itself", b: "When everyone but one is set, the rest of the points go to the last player as a highlighted suggestion. Tap ✓ (or just Save). Save tells you exactly what's missing." },
-  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon” and confirm. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
+  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon”, then choose for that hand: add the points to everyone else, or take them off the shooter. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
 ];
 var introStep = 0, introDone = null;
 function showOnboarding(then) {
@@ -370,7 +370,7 @@ function showHelp() {
     body.innerHTML =
       '<div class="help-sec"><h3>Entering a hand</h3><ul>' +
         "<li><b>Tap</b> a player's number to type it on the keypad, or use a quick chip. Arrow keys and digits work on a keyboard.</li>" +
-        "<li><b>− / +</b> nudge by one. <b>Slide</b> sideways across a card for big changes; it snaps to whole points and shows a big live number.</li>" +
+        "<li><b>− / +</b> nudge by one. <b>Slide</b> sideways across a card for big changes; a slider with a track and thumb follows your finger and snaps to whole points.</li>" +
         "<li><b>The rest:</b> when only one player is left, they get the remaining points automatically (shown highlighted). Tap ✓ to confirm, or just Save. The keypad also has an “N left” chip.</li>" +
         "<li><b>Save</b> needs exactly " + tot + " points. If it's greyed out it says why, e.g. “Dave still to set” or “3 points left to give out”.</li>" +
         "<li><b>Clear</b> lives in the keypad and always asks first; the toast offers Undo. The keypad's Undo steps back that player's last value.</li></ul></div>" +
@@ -378,8 +378,8 @@ function showHelp() {
         "<li>Each heart is 1 point" + (r.spot ? " (Spot Hearts: ♥2–♥10 face value, J 11, Q 12, K 13, A 14)" : "") + ", the Queen of Spades (♠Q) is 13: " + tot + " points a hand. Lowest total wins when anyone reaches the end score.</li>" +
         "<li>The ♠Q holder is spotted automatically when only one player has 13+; otherwise tap ♠Q? on the right card. It shows on the scorecard and in each hand's recap.</li>" +
         (r.jack ? "<li>J♦ (Omnibus): tap J♦ on whoever took it; they get −10.</li>" : "") +
-        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. " +
-          (r.moonMode === "subtract" ? "This game: the shooter gets −" + tot + " (totals can go below 0) and others 0." : "This game: the shooter scores 0 and everyone else +" + tot + ".") + " The confirm shows the new totals first.</li></ul></div>" +
+        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. Each hand asks: everyone else +" + tot + ", or −" + tot + " for the shooter (totals can go below 0). " +
+          "The house-rules setting only pre-selects that choice" + (r.moonMode === "subtract" ? " (this game starts on −" + tot + ")." : " (this game starts on +" + tot + ").") + " The confirm shows the new totals first. Editing the hand lets you change that choice.</li></ul></div>" +
       '<div class="help-sec"><h3>Passing and dealing</h3><ul><li>' + n + " players: " + R.passCycle(n, r.passMode).map(function (p) { return R.PASS_LABEL[p]; }).join(", ") + ", then repeat. Pass 3 cards. " +
         R.cardsInfo(n).each + " cards each" + (R.cardsInfo(n).removed ? " (remove " + R.cardsInfo(n).removed + ")" : "") + ".</li><li>The deal moves one seat clockwise each hand; the card shows who deals and whom you pass to.</li></ul></div>" +
       '<div class="help-sec"><h3>Fixing mistakes</h3><ul><li>Undo / Redo in the bottom bar step through whole hands and player changes.</li><li>Hands → Edit reopens any hand with the same controls and shows that hand\'s totals; later totals are recalculated.</li></ul></div>' +
