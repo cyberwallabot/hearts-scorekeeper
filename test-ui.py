@@ -215,6 +215,30 @@ def phone_flow(browser):
     check("HT-01 fast drag stays in range (no moon, no junk)", all(isinstance(q, int) or q is None for q in e) and sum(q or 0 for q in e) <= 26 and not page.is_visible("#modal"), e)
     tch.down(5, x + 160, y); tch.drag(5, -400, 0, 6, 5); tch.up(5); page.wait_for_timeout(60)
     check("HT-01 fast drag left floors at 0, not cleared", entry(page)[2] == 0, entry(page))
+    # visible score slider: track + thumb, follows a finger
+    sl = page.locator("#cslider-0").bounding_box()
+    vis = page.evaluate("""() => {
+      const track = document.getElementById('cstrack-0').getBoundingClientRect();
+      const thumb = document.getElementById('csthumb-0').getBoundingClientRect();
+      const cs = getComputedStyle(document.getElementById('csthumb-0'));
+      return { tw: track.width, th: track.height, hw: thumb.width, hh: thumb.height, bg: cs.backgroundColor };
+    }""")
+    check("score slider track and thumb are visible", vis["tw"] > 40 and vis["th"] >= 8 and vis["hw"] >= 18 and vis["hh"] >= 18 and vis["bg"] != "rgba(0, 0, 0, 0)", vis)
+    tch.down(7, sl["x"] + 10, sl["y"] + sl["height"] / 2)
+    tch.drag(7, max(40, sl["width"] * 0.55), 0, 10, 18)
+    tch.up(7)
+    page.wait_for_timeout(80)
+    v0 = entry(page)[0]
+    thumb_left = page.evaluate("document.getElementById('csthumb-0').style.left")
+    check("slider drag sets a score and moves the thumb", isinstance(v0, int) and v0 > 0 and thumb_left not in ("", "0%", "0px"), (v0, thumb_left))
+    page.evaluate("__heartsTest.setEntry([null,null,null,null])")
+    slm = page.locator("#cslider-0").bounding_box()
+    page.mouse.move(slm["x"] + 18, slm["y"] + slm["height"] / 2)
+    page.mouse.down()
+    page.mouse.move(slm["x"] + slm["width"] * 0.45, slm["y"] + slm["height"] / 2, steps=10)
+    page.mouse.up()
+    page.wait_for_timeout(80)
+    check("mouse drag moves the score slider", isinstance(entry(page)[0], int) and entry(page)[0] > 0, entry(page))
     # hand 1: 5/0/8/13 via typing, Dave by suggestion + Save
     page.evaluate("__heartsTest.setEntry([null,null,null,null])")
     keypad(page, 0, 5); keypad(page, 1, chip=0); keypad(page, 2, 8)
@@ -335,6 +359,13 @@ def table_mode(browser):
     page.wait_for_timeout(80)
     e = entry(page)
     check("multi-touch: two seats slide at once (seat-relative)", (e[0] or 0) > 0 and (e[2] or 0) > 0 and (e[0] + e[2]) <= 26, e)
+    page.evaluate("__heartsTest.setEntry([null,null,null,null])")
+    sb = page.locator("#cslider-1").bounding_box()
+    t.down(8, sb["x"] + sb["width"] / 2, sb["y"] + 12)
+    t.drag(8, 0, sb["height"] * 0.55, 12, 16)
+    t.up(8)
+    page.wait_for_timeout(80)
+    check("rotated slider follows a finger on the side seat", isinstance(entry(page)[1], int) and entry(page)[1] > 0, entry(page))
     # keypad faces the seat
     page.click("#cval-2"); face = page.evaluate("getComputedStyle(document.getElementById('keypad-box')).getPropertyValue('--face').trim()")
     check("keypad rotates to face the top seat", face == "180deg", face)
@@ -402,6 +433,24 @@ def variants(browser):
     check("R-04 −26 confirm explains", "gets −26" in page.inner_text("#modal-body"))
     page.click("#moon-confirm"); skip_moon(page); close_sc(page)
     check("R-04 −26 mode: shooter goes negative", st(page)["rounds"][0]["scores"] == [0, 0, 0, -26] and page.inner_text("#ctot-3") == "-26")
+    # the default only pre-selects: the next moon can go the other way
+    page.click("#moon-btn"); page.click(".pick[data-seat='0']")
+    check("moon prompt offers both choices", page.is_visible("#moon-add") and page.is_visible("#moon-sub") and page.get_attribute("#moon-sub", "aria-pressed") == "true")
+    page.click("#moon-add")
+    check("switching the choice updates this hand's preview", page.get_attribute("#moon-add", "aria-pressed") == "true" and "everyone else +26" in page.inner_text("#modal-body"))
+    page.click("#moon-confirm"); skip_moon(page); close_sc(page)
+    s = st(page)
+    check("hands keep their own moon choices", s["rounds"][0]["moonMode"] == "subtract" and s["rounds"][0]["scores"] == [0, 0, 0, -26]
+          and s["rounds"][1]["moonMode"] == "add" and s["rounds"][1]["scores"] == [0, 26, 26, 26])
+    page.click("#hands-btn"); page.wait_for_timeout(80)
+    hb = page.inner_text("#sheet-body")
+    check("hand history names each moon choice", "\u221226 to the shooter" in hb and "+26 to everyone else" in hb, hb)
+    page.click("#sheet-body [data-edit='1']"); page.wait_for_timeout(80)
+    page.click("#save-btn"); page.wait_for_timeout(80)
+    check("editing a moon hand can change its choice", page.is_visible("#moon-sub") and page.get_attribute("#moon-add", "aria-pressed") == "true")
+    page.click("#moon-sub"); page.click("#moon-confirm"); skip_moon(page); close_sc(page)
+    check("edited hand now subtracts", st(page)["rounds"][1]["scores"] == [-26, 0, 0, 0] and st(page)["rounds"][1]["moonMode"] == "subtract"
+          and st(page)["rounds"][0]["scores"] == [0, 0, 0, -26])
     # 3 players: left, right, hold; 5 players: no across
     page.click("#menu-btn"); page.click("#m-new"); page.wait_for_timeout(100)
     if page.is_visible("#newgame-confirm"): page.click("#newgame-confirm")
@@ -484,7 +533,7 @@ def history(browser):
     csv = open(dl.value.path(), encoding="utf-8").read().strip().split("\n")
     check("HT-14/R-03 CSV: header + one row per player per hand", csv[0].startswith("game_id,finished_at,target,rules,hand,player") and len(csv) == 1 + 3 * 4, len(csv))
     row = [r for r in csv[1:] if ",1,Maya,1,13,13,13," in r]
-    check("R-03 CSV values (hand 1: Maya 13 incl. the Queen, winner flag on Priya)", row and ",yes," in row[0] and any(",Priya," in r and r.endswith(",7,yes") for r in csv[1:]), row[:1])
+    check("R-03 CSV values (hand 1: Maya 13 incl. the Queen, winner flag on Priya)", row and ",yes," in row[0] and any(",Priya," in r and ",7,yes" in r for r in csv[1:]), row[:1])
     page.click(".game-row"); page.wait_for_timeout(150)
     check("HT-14 game opens read-only scorecard", page.locator("#history-body .scd tbody tr").count() == 3 and page.locator("#history-body [data-edit]").count() == 0)
     page.click("#detail-delete"); page.click("#confirm-delete-game"); page.wait_for_timeout(300)

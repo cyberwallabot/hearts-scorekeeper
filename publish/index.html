@@ -451,6 +451,7 @@ input:focus, select:focus { border-color: #5ee08f; box-shadow: 0 0 0 3px rgba(94
 .chips > button[aria-pressed="true"] { background: #143425; box-shadow: inset 0 0 0 2px var(--ok); }
 .custom-target { flex: 1; min-width: 110px; }
 .custom-target input { min-height: 44px; }
+.moon-note { margin: -2px 0 8px; }
 .preset-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 6px 0 12px; }
 .preset-row .ghost { min-height: 50px; padding: 0 14px; width: auto; }
 .rule-toggles { display: grid; gap: 8px; margin: 10px 0 12px; }
@@ -514,7 +515,10 @@ label.field { margin-bottom: 12px; }
 .c-ok { background: #1a4d33 !important; color: #c9ffdc !important; box-shadow: inset 0 0 0 2px var(--ok) !important; }
 .c-q[aria-pressed="true"], .c-j[aria-pressed="true"] { background: #dfe7ff !important; color: #111a33 !important; }
 .c-j[aria-pressed="true"] { background: #ffd9a0 !important; color: #3a2405 !important; }
-.c-entry { grid-area: entry; display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 6px; height: clamp(48px, 7.4vh, 70px); }
+.c-entry { grid-area: entry; display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; grid-template-rows: minmax(44px, 1fr) 24px; gap: 2px 6px; height: auto; min-height: 70px; }
+.c-entry > .step:first-child { grid-column: 1; grid-row: 1; }
+.c-entry > .c-val { grid-column: 2; grid-row: 1; }
+.c-entry > .step:nth-child(3) { grid-column: 3; grid-row: 1; }
 .step { border-radius: 14px; background: var(--card2); color: var(--text); font-size: 1.6rem; font-weight: 800; box-shadow: inset 0 0 0 1px var(--edge); min-height: 44px; }
 .step:disabled { opacity: .35; }
 .c-val { border-radius: 14px; background: #f4efe6; color: #1c1916; font-size: clamp(1.6rem, 4.4vh, 2.6rem); font-weight: 900; font-variant-numeric: tabular-nums; min-height: 44px; }
@@ -525,11 +529,30 @@ label.field { margin-bottom: 12px; }
 @keyframes pop { 50% { transform: scale(1.12); } }
 .card.locked .c-entry { opacity: .45; }
 .card.dragging { box-shadow: inset 4px 0 0 var(--pc), 0 0 0 3px #f3e2a8; }
+/* Score slider. The drag overlay used to be only a fill bar (.cd-scale) with
+   overflow:hidden and no thumb, so nothing moved under the finger. The old
+   jog-dial rules are still in the first stylesheet, but the markup that drew
+   that control left with the seat panels. A native range input also loses its
+   track and thumb on iOS Safari once an ancestor sets touch-action:none.
+   This thumb is a real element, positioned on each pointer move. */
+.c-slider { grid-column: 1 / -1; grid-row: 2; position: relative; display: flex; align-items: center; height: 24px; padding: 0 14px; touch-action: none; cursor: pointer; }
+.c-slider.off { opacity: .45; }
+.c-slider:focus-visible { outline: 3px solid #f3e2a8; outline-offset: 2px; }
+.cs-track, .cd-track { position: relative; flex: 1; height: 10px; border-radius: 99px; background: #3d4d46; box-shadow: inset 0 1px 2px rgba(0,0,0,.45); }
+.cs-fill, .cd-track > i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #5ee08f, #e9c45a); pointer-events: none; }
+.cs-thumb, .cd-thumb {
+  position: absolute; top: 50%; left: 0; width: 22px; height: 22px; border-radius: 50%;
+  background: #fffdf7; border: 3px solid #1c1916; box-shadow: 0 1px 5px rgba(0,0,0,.55), 0 0 0 2px #e9c45a;
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+/* The hit target is the whole row, so the thumb can stay small enough not to cover the track. */
+.c-slider::before { content: ""; position: absolute; left: 0; right: 0; top: -2px; bottom: -4px; }
 .c-drag { position: absolute; inset: 0; background: rgba(10,18,16,.95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 10px; pointer-events: none; border-radius: 18px; }
 .c-drag[hidden] { display: none; }
 .cd-num { font-size: clamp(56px, 12vh, 120px); font-weight: 900; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
-.cd-scale { width: 90%; height: 12px; border-radius: 99px; background: #2c3832; overflow: hidden; }
-.cd-scale i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #5ee08f, #e9c45a, #ff6b78); }
+.cd-slider { width: 90%; height: 36px; display: flex; align-items: center; }
+.cd-track { height: 12px; background: #2c3832; }
+.cd-thumb { width: 30px; height: 30px; }
 .cd-range { width: 90%; display: flex; justify-content: space-between; font-size: .8rem; color: var(--dim); font-weight: 700; }
 .cd-moon { opacity: 0; width: 90%; font-size: .8rem; color: #e5dcff; text-align: center; transition: opacity .15s; }
 .cd-moon.on { opacity: 1; }
@@ -616,6 +639,7 @@ label.field { margin-bottom: 12px; }
 .moon-preview td:first-child { display: flex; align-items: center; gap: 8px; }
 .moon-preview .avatar { width: 24px; height: 24px; font-size: .8rem; }
 .moon-preview td.d { color: #e5dcff; font-weight: 800; }
+.seg.moon-choice { grid-template-columns: 1fr; margin: 8px 0 10px; }
 .jack-pick > button { min-width: 0; }
 
 /* toast with action */
@@ -739,7 +763,12 @@ label.field { margin-bottom: 12px; }
 .game.n5 .c-pass, .game.n6 .c-pass { font-size: .74rem; }
 .game.n5 .card, .game.n6 .card { padding: 8px; gap: 2px 6px; }
 .game.n5 .c-total b, .game.n6 .c-total b { font-size: clamp(28px, 4.4vh, 52px); }
-.game.n5 .c-entry, .game.n6 .c-entry { height: clamp(44px, 6vh, 60px); grid-template-columns: 44px minmax(0, 1fr) 44px; }
+.game.n5 .c-entry, .game.n6 .c-entry { min-height: 68px; height: auto; grid-template-columns: 44px minmax(0, 1fr) 44px; grid-template-rows: minmax(44px, 1fr) 22px; }
+.game.n5 .c-slider, .game.n6 .c-slider { height: 22px; padding: 0 12px; }
+.game.n3 .c-entry { grid-template-rows: 44px 18px; min-height: 0; gap: 0 6px; }
+.game.n3 .c-slider { height: 18px; }
+.game.n3 .cs-thumb { width: 20px; height: 20px; }
+.game.n3 .c-val { min-height: 44px; }
 .game.n5 .c-acts button, .game.n6 .c-acts button { min-width: 44px; padding: 0 6px; }
 
 /* print (History → Print / PDF) */
@@ -804,7 +833,8 @@ label.field { margin-bottom: 12px; }
 
       <div class="kicker sp">House rules</div>
       <div class="preset-row"><select id="preset-select" aria-label="House rules preset"></select><button type="button" class="ghost" id="save-preset">Save as preset</button></div>
-      <div class="field-label">If someone shoots the moon</div>
+      <div class="field-label">Default when someone shoots the moon</div>
+      <p class="muted small moon-note">This only pre-selects the choice. Every moon asks again, for that hand only.</p>
       <div class="seg" role="group" aria-label="Moon scoring">
         <button type="button" id="mode-add" aria-pressed="true">+26 to everyone else<small>Shooter scores 0</small></button>
         <button type="button" id="mode-sub" aria-pressed="false">−26 to the shooter<small>Others score 0; can go below 0</small></button>
@@ -1634,7 +1664,8 @@ label.field { margin-bottom: 12px; }
     };
   }
   function rulesSummary(r) {
-    var bits = [r.moonMode === "subtract" ? "Moon −26 to shooter" : "Moon +26 to others"];
+    var t = pointsTotal(r);
+    var bits = [r.moonMode === "subtract" ? "Moon default −" + t + " to shooter" : "Moon default +" + t + " to others"];
     if (r.spot) bits.push("Spot hearts");
     if (r.jack) bits.push("J♦ −10");
     if (r.passMode === "nohold") bits.push("No hold hands");
@@ -1739,6 +1770,36 @@ label.field { margin-bottom: 12px; }
   }
   function blankEntry(n) { var p = []; while (p.length < n) p.push(null); return { pts: p, queen: null, jack: null }; }
 
+  // Which way a moon hand was scored. Old saves omit moonMode; a negative
+  // shooter score, after putting a J♦ −10 back, means the shooter was subtracted.
+  function inferMoonMode(r) {
+    if (!r || !isInt(r.moon) || !Array.isArray(r.scores)) return null;
+    var adj = isInt(r.jack) && r.jack === r.moon ? 10 : 0;
+    var base = (isInt(r.scores[r.moon]) ? r.scores[r.moon] : 0) + adj;
+    return base < 0 ? "subtract" : "add";
+  }
+  function moonModeOf(r) {
+    if (!r || !isInt(r.moon)) return null;
+    if (r.moonMode === "subtract" || r.moonMode === "add") return r.moonMode;
+    return inferMoonMode(r);
+  }
+  function moonPoints(r) {
+    var mode = moonModeOf(r);
+    if (!mode) return 0;
+    if (mode === "subtract") return Math.abs((r.scores[r.moon] || 0) + (r.jack === r.moon ? 10 : 0));
+    var best = 0, i, v;
+    for (i = 0; i < r.scores.length; i++) {
+      if (i === r.moon || (r.out && r.out[i])) continue;
+      v = r.scores[i] + (r.jack === i ? 10 : 0);
+      if (v > best) best = v;
+    }
+    return best;
+  }
+  function moonChoiceLabel(r) {
+    var n = moonPoints(r);
+    return moonModeOf(r) === "subtract" ? "−" + n + " to the shooter" : "+" + n + " to everyone else";
+  }
+
   // Turn a complete entry into a stored hand.
   function makeHand(entry, st) {
     var hs = handStatus(entry, st);
@@ -1748,7 +1809,7 @@ label.field { margin-bottom: 12px; }
     var scores = pts.slice();
     var jack = st.rules.jack ? entry.jack : null;
     if (isInt(jack)) scores[jack] -= 10;
-    return withOut({ scores: scores, pts: pts, moon: null, pass: passFor(st.rounds.length, active.length, st.rules.passMode),
+    return withOut({ scores: scores, pts: pts, moon: null, moonMode: null, pass: passFor(st.rounds.length, active.length, st.rules.passMode),
       dealer: currentDealer(st), queen: hs.queen, jack: isInt(jack) ? jack : null }, st);
   }
   // Remember who sat out, so editing an old hand later uses the same players.
@@ -1756,17 +1817,20 @@ label.field { margin-bottom: 12px; }
     if (st.out && st.out.some(Boolean)) h.out = st.out.map(Boolean);
     return h;
   }
-  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass) {
+  // moonMode overrides the game default for this hand only. The default still
+  // applies when a hand doesn't pass one (older callers, and the pre-selected choice).
+  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass, moonMode) {
     var n = st.players.length, active = activeSeats(st), total = pointsTotal(st.rules);
+    var mode = moonMode === "subtract" || moonMode === "add" ? moonMode : (st.rules && st.rules.moonMode === "subtract" ? "subtract" : "add");
     var scores = range(n).map(function (s) {
       if (active.indexOf(s) === -1) return 0;
-      if (st.rules.moonMode === "subtract") return s === shooter ? -total : 0;
+      if (mode === "subtract") return s === shooter ? -total : 0;
       return s === shooter ? 0 : total;
     });
     var j = st.rules.jack && isInt(jack) ? jack : null;
     if (j !== null) scores[j] -= 10;
     var k = isInt(handIndex) ? handIndex : st.rounds.length;
-    return withOut({ scores: scores, pts: null, moon: shooter, pass: pass || passFor(k, active.length, st.rules.passMode),
+    return withOut({ scores: scores, pts: null, moon: shooter, moonMode: mode, pass: pass || passFor(k, active.length, st.rules.passMode),
       dealer: isInt(dealer) ? dealer : currentDealer(st), queen: shooter, jack: j }, st);
   }
 
@@ -1814,7 +1878,7 @@ label.field { margin-bottom: 12px; }
 
   function handRecap(r, players) {
     if (isInt(r.moon)) {
-      var s = players[r.moon] + " shot the moon";
+      var s = players[r.moon] + " shot the moon (" + moonChoiceLabel(r) + ")";
       if (isInt(r.jack)) s += "; " + players[r.jack] + " took the J♦";
       return s;
     }
@@ -1869,6 +1933,9 @@ label.field { margin-bottom: 12px; }
       if (h.moon !== null) h.queen = h.moon;
       else if (h.pts) { var c = h.pts.map(function (p, i) { return p >= 13 ? i : -1; }).filter(function (i) { return i >= 0; }); if (c.length === 1) h.queen = c[0]; }
     }
+    // Scores are the record. Infer the choice so a save from before per-hand
+    // moons still shows the way that hand was actually scored.
+    h.moonMode = inferMoonMode(h);
     return h;
   }
   // Accepts v1 (localStorage era), v2 (4 players) and v3 states.
@@ -1996,7 +2063,7 @@ label.field { margin-bottom: 12px; }
 
   function csvCell(v) { var s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function toCsv(games) {
-    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner"]];
+    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner", "moon_mode"]];
     (games || []).forEach(function (g) {
       var n = g.players.length, run = runningTotals(g.rounds, n), act = range(n).filter(function (i) { return !(g.out && g.out[i]); });
       var rulesTxt = rulesSummary(sanitizeRules(g.rules, g.moonMode));
@@ -2004,7 +2071,7 @@ label.field { margin-bottom: 12px; }
         var rk = ranks(run[k], act);
         g.players.forEach(function (p, i) {
           rows.push([g.id, new Date(g.finishedAt).toISOString(), g.target, rulesTxt, k + 1, p, i + 1, r.pts ? r.pts[i] : "", r.scores[i], run[k][i], rk[i] || "",
-            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : ""]);
+            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : "", isInt(r.moon) ? (moonModeOf(r) || "") : ""]);
         });
       });
     });
@@ -2053,6 +2120,7 @@ label.field { margin-bottom: 12px; }
     isInt: isInt, defaultRules: defaultRules, sanitizeRules: sanitizeRules, rulesSummary: rulesSummary, pointsTotal: pointsTotal, cardsInfo: cardsInfo,
     activeSeats: activeSeats, passCycle: passCycle, passFor: passFor, passTarget: passTarget, nextDealer: nextDealer, currentDealer: currentDealer,
     entryBounds: entryBounds, queenCandidates: queenCandidates, handStatus: handStatus, blankEntry: blankEntry, makeHand: makeHand, makeMoonHand: makeMoonHand,
+    moonModeOf: moonModeOf, moonChoiceLabel: moonChoiceLabel,
     totals: totals, runningTotals: runningTotals, leaders: leaders, losers: losers, ranks: ranks, isOver: isOver, winners: winners, handRecap: handRecap,
     makeId: makeId, normName: normName, nameKey: nameKey, isPlaceholder: isPlaceholder, newGame: newGame, validHand: validHand, sanitizeState: sanitizeState,
     buildRecord: buildRecord, validRecord: validRecord, normalizeRecord: normalizeRecord, parseBackup: parseBackup, mergeGames: mergeGames, updateRoster: updateRoster,
@@ -3372,6 +3440,9 @@ function cardHtml(i) {
       '<button type="button" class="step" id="cminus-' + i + '" aria-label="' + esc(state.players[i]) + ' minus 1">−</button>' +
       '<button type="button" class="c-val unknown" id="cval-' + i + '" aria-label="' + esc(state.players[i]) + ' points this hand">?</button>' +
       '<button type="button" class="step" id="cplus-' + i + '" aria-label="' + esc(state.players[i]) + ' plus 1">+</button>' +
+      '<div class="c-slider" id="cslider-' + i + '" data-seat="' + i + '" role="slider" tabindex="0" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="26" aria-valuenow="0" aria-label="' + esc(state.players[i]) + ' score slider">' +
+        '<div class="cs-track" id="cstrack-' + i + '"><i class="cs-fill" id="csfill-' + i + '"></i><span class="cs-thumb" id="csthumb-' + i + '"></span></div>' +
+      '</div>' +
     '</div>' +
     '<div class="c-acts">' +
       '<button type="button" class="c-ok" id="cok-' + i + '" hidden></button>' +
@@ -3379,7 +3450,8 @@ function cardHtml(i) {
       (jack ? '<button type="button" class="c-j" id="cj-' + i + '" aria-pressed="false">J♦</button>' : "") +
       '<button type="button" class="c-moon" id="cmoon-' + i + '" hidden>🌙 Moon</button>' +
     '</div>' +
-    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div><div class="cd-scale"><i id="cdbar-' + i + '"></i></div>' +
+    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div>' +
+      '<div class="cd-slider"><div class="cd-track"><i id="cdbar-' + i + '"></i><span class="cd-thumb" id="cdthumb-' + i + '"></span></div></div>' +
       '<div class="cd-range"><span id="cdmin-' + i + '">0</span><span id="cdcap-' + i + '"></span><span id="cdmax-' + i + '">26</span></div>' +
       '<div class="cd-moon" id="cdmoon-' + i + '"><span>🌙 keep pushing to shoot the moon</span><div class="bar"><i></i></div></div></div>' +
   '</div>';
@@ -3467,6 +3539,12 @@ function wireCard(i) {
   $("cq-" + i).addEventListener("click", function () { if (locked()) return; entry.queen = entry.queen === i ? null : i; persist(); paintAll(); buzz(8); });
   if ($("cj-" + i)) $("cj-" + i).addEventListener("click", function () { if (locked()) return; entry.jack = entry.jack === i ? null : i; persist(); paintAll(); buzz(8); });
   $("cmoon-" + i).addEventListener("click", function () { askMoon(i); });
+  var sl = $("cslider-" + i);
+  sl.addEventListener("pointerdown", onSliderDown, { passive: false });
+  sl.addEventListener("pointermove", onSliderMove, { passive: false });
+  sl.addEventListener("pointerup", onSliderUp);
+  sl.addEventListener("pointercancel", onSliderCancel);
+  sl.addEventListener("lostpointercapture", onSliderCancel);
 }
 
 /* ---------- entry operations ---------- */
@@ -3573,12 +3651,15 @@ function paintAll() {
     after.textContent = c.editing ? "after hand " + (c.index + 1) : (ev !== null && !lk ? "→ " + (base[i] + ev) : "");
     var tgt = R.passTarget(i, c.pass, c.active);
     $("cpass-" + i).textContent = c.pass === "hold" ? "No pass this hand" : (tgt === null ? "" : "Pass 3 " + c.pass + " → " + state.players[tgt]);
-    var val = $("cval-" + i);
-    val.classList.toggle("unknown", v === null && !sug);
-    val.classList.toggle("sug", v === null && !!sug);
-    val.textContent = v !== null ? String(v) : (sug ? String(hs.suggestion.value) : "?");
-    val.setAttribute("aria-label", state.players[i] + ": " + (v !== null ? v + " points" : sug ? "suggested " + hs.suggestion.value + ", not confirmed" : "not set") + ". Tap to type.");
     var b = R.entryBounds(entry.pts, i, c.active, total);
+    var val = $("cval-" + i);
+    if (!sliderDragFor(i)) {
+      val.classList.toggle("unknown", v === null && !sug);
+      val.classList.toggle("sug", v === null && !!sug);
+      val.textContent = v !== null ? String(v) : (sug ? String(hs.suggestion.value) : "?");
+      paintSlider(i, isInt(v) ? v : 0, b.max);
+    }
+    val.setAttribute("aria-label", state.players[i] + ": " + (v !== null ? v + " points" : sug ? "suggested " + hs.suggestion.value + ", not confirmed" : "not set") + ". Tap to type.");
     $("cminus-" + i).disabled = lk || v === null && !sug || (v !== null && v <= 0);
     $("cplus-" + i).disabled = lk || (isInt(v) ? v >= b.max : b.max <= 0);
     var ok = $("cok-" + i);
@@ -3676,7 +3757,7 @@ function onCardKey(e, i) {
 var SLIDE_START = 10;
 function onDown(e, i) {
   if (moonBusy || locked()) return;
-  if (e.target.closest && e.target.closest("button") && !e.target.closest(".c-val")) return;
+  if (e.target.closest && (e.target.closest(".c-slider") || (e.target.closest("button") && !e.target.closest(".c-val")))) return;
   if (dragBySeat[i]) return;
   if (e.pointerType === "mouse" && e.button !== 0) return;
   e.preventDefault();
@@ -3719,8 +3800,11 @@ function onMove(e) {
 }
 function paintDrag(d, b) {
   var i = d.seat, v = d.st.value, over = d.st.over || 0;
+  var pct = b.max ? v / b.max * 100 : 0;
   $("cdnum-" + i).textContent = String(v);
-  $("cdbar-" + i).style.width = (b.max ? v / b.max * 100 : 0) + "%";
+  $("cdbar-" + i).style.width = pct + "%";
+  $("cdthumb-" + i).style.left = pct + "%";
+  paintSlider(i, v, b.max);
   $("cdmin-" + i).textContent = "0";
   $("cdmax-" + i).textContent = String(b.max);
   $("cdcap-" + i).textContent = v === b.max && b.max < handTotal() ? "the rest" : "";
@@ -3761,7 +3845,99 @@ function endDrag(d) {
   }
   if ($("cdrag-" + d.seat)) $("cdrag-" + d.seat).hidden = true;
 }
-function endAllDrags() { Object.keys(drags).forEach(function (k) { endDrag(drags[k]); }); }
+function endAllDrags() {
+  Object.keys(drags).forEach(function (k) { endDrag(drags[k]); });
+  Object.keys(sliderDrags).forEach(function (k) {
+    var d = sliderDrags[k];
+    delete sliderDrags[k];
+    var sl = $("cslider-" + d.seat);
+    if (sl) { try { sl.releasePointerCapture(Number(k)); } catch (e) {} }
+  });
+}
+
+/* ---------- score slider (track + thumb) ---------- */
+var sliderDrags = {};
+function sliderDragFor(i) {
+  var k;
+  for (k in sliderDrags) if (sliderDrags[k].seat === i) return sliderDrags[k];
+  return null;
+}
+function paintSlider(i, value, max) {
+  var sl = $("cslider-" + i);
+  if (!sl) return;
+  var pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  var fill = $("csfill-" + i), thumb = $("csthumb-" + i);
+  if (fill) fill.style.width = pct + "%";
+  if (thumb) thumb.style.left = pct + "%";
+  sl.classList.toggle("off", !(max > 0));
+  sl.setAttribute("aria-valuemax", String(max));
+  sl.setAttribute("aria-valuenow", String(Math.round(value) || 0));
+  sl.setAttribute("aria-valuetext", max > 0 ? Math.round(value) + " of " + max : "no points left");
+  sl.setAttribute("aria-disabled", max > 0 && !locked() ? "false" : "true");
+}
+// Finger position along the track, in the player's own left-to-right axis
+// (shared-table seats are rotated). Returns 0..1.
+function sliderRatio(track, clientX, clientY, rot) {
+  var r = track.getBoundingClientRect();
+  var along = L.localDx(clientX - (r.left + r.width / 2), clientY - (r.top + r.height / 2), rot);
+  var w = track.offsetWidth || 1;
+  return Math.max(0, Math.min(1, (along + w / 2) / w));
+}
+function sliderValueAt(d, x, y) {
+  var track = $("cstrack-" + d.seat);
+  if (!track || !(d.max > 0)) return 0;
+  return Math.max(0, Math.min(d.max, Math.round(sliderRatio(track, x, y, seatRot(d.seat)) * d.max)));
+}
+function previewSlider(d, x, y) {
+  var v = sliderValueAt(d, x, y);
+  paintSlider(d.seat, v, d.max);
+  var val = $("cval-" + d.seat);
+  if (val) {
+    val.textContent = String(v);
+    val.classList.remove("unknown", "sug");
+  }
+  if (v !== d.last) { d.last = v; buzz(5); sfx("tick"); }
+  return v;
+}
+function onSliderDown(e) {
+  if (moonBusy || locked()) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  var i = Number(e.currentTarget.getAttribute("data-seat"));
+  var b = boundsFor(i);
+  if (!(b.max > 0)) { toast("No points left for " + state.players[i] + "."); sfx("error"); return; }
+  e.preventDefault();
+  e.stopPropagation();
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+  var d = { pid: e.pointerId, seat: i, from: entry.pts[i], max: b.max, last: null };
+  sliderDrags[e.pointerId] = d;
+  previewSlider(d, e.clientX, e.clientY);
+}
+function onSliderMove(e) {
+  var d = sliderDrags[e.pointerId];
+  if (!d) return;
+  e.preventDefault();
+  previewSlider(d, e.clientX, e.clientY);
+}
+function finishSlider(d, x, y, commit) {
+  if (!d || sliderDrags[d.pid] !== d) return;
+  delete sliderDrags[d.pid];
+  var sl = $("cslider-" + d.seat);
+  if (sl) { try { sl.releasePointerCapture(d.pid); } catch (e) {} }
+  if (!commit) { paintAll(); return; }
+  var v = sliderValueAt(d, x, y);
+  if (v === handTotal() && d.max === handTotal()) { paintAll(); askMoon(d.seat, true); return; }
+  if (v !== d.from) setPts(d.seat, v, true); else paintAll();
+}
+function onSliderUp(e) {
+  var d = sliderDrags[e.pointerId];
+  if (!d) return;
+  finishSlider(d, e.clientX, e.clientY, true);
+}
+function onSliderCancel(e) {
+  var d = sliderDrags[e.pointerId];
+  if (!d) return;
+  finishSlider(d, e.clientX, e.clientY, false);
+}
 
 /* ---------- keypad ---------- */
 function openKeypad(i, firstDigit) {
@@ -3923,46 +4099,58 @@ function askMoon(seat, fromValue) {
     return;
   }
   var jack = state.rules.jack ? (isInt(entry.jack) ? entry.jack : null) : null;
+  // The game setting only pre-selects. Editing a moon hand starts on that hand's own choice.
+  var mode = state.rules.moonMode === "subtract" ? "subtract" : "add";
+  if (c.editing && c.hand && c.hand.moon === seat) mode = R.moonModeOf(c.hand) || mode;
   var draw = function () {
-    var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass);
+    var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass, mode);
     var n = state.players.length, run = R.runningTotals(state.rounds, n);
     var before = c.editing ? (c.index > 0 ? run[c.index - 1] : state.players.map(function () { return 0; })) : R.totals(state.rounds, n);
     var total = handTotal();
     var rows = c.active.map(function (i) {
       return "<tr><td>" + avatar(state, i) + " " + esc(state.players[i]) + "</td><td>" + before[i] + '</td><td class="d">' + (hand.scores[i] >= 0 ? "+" : "") + hand.scores[i] + "</td><td><b>" + (before[i] + hand.scores[i]) + "</b></td></tr>";
     }).join("");
-    var how = state.rules.moonMode === "subtract" ? esc(state.players[seat]) + " gets −" + total + "; everyone else 0." : esc(state.players[seat]) + " scores 0; everyone else +" + total + ".";
+    var how = mode === "subtract" ? esc(state.players[seat]) + " gets −" + total + "; everyone else 0." : esc(state.players[seat]) + " scores 0; everyone else +" + total + ".";
+    var choice = '<div class="field-label">How should this hand be scored?</div>' +
+      '<div class="seg moon-choice" role="group" aria-label="Moon scoring for this hand">' +
+      '<button type="button" id="moon-add" aria-pressed="' + (mode === "add" ? "true" : "false") + '">+' + total + ' to everyone else<small>Shooter scores 0</small></button>' +
+      '<button type="button" id="moon-sub" aria-pressed="' + (mode === "subtract" ? "true" : "false") + '">−' + total + ' to the shooter<small>Others score 0; can go below 0</small></button>' +
+      "</div>";
     var jackHtml = state.rules.jack ? '<div class="field-label">Who took the J♦ (−10)?</div><div class="chips jack-pick">' + c.active.map(function (i) {
       return '<button type="button" data-j="' + i + '" aria-pressed="' + (jack === i ? "true" : "false") + '">' + esc(state.players[i]) + "</button>";
     }).join("") + "</div>" : "";
-    return "<p>" + (fromValue ? esc(state.players[seat]) + " took all " + total + " points: that is shooting the moon. " : "") + how + "</p>" +
+    return "<p>" + (fromValue ? esc(state.players[seat]) + " took all " + total + " points. " : "") + "This choice is only for this hand. " + how + "</p>" +
+      choice +
       '<table class="moon-preview"><thead><tr><th>Player</th><th>Now</th><th>Hand</th><th>New total</th></tr></thead><tbody>' + rows + "</tbody></table>" + jackHtml;
   };
   var confirm = function () {
     if (state.rules.jack && jack === null) { toast("Pick who took the J♦ first."); sfx("error"); return; }
     closeModal();
-    triggerMoon(seat, jack);
+    triggerMoon(seat, jack, mode);
   };
   openModal(state.players[seat] + " shot the moon?", draw(), [
     { label: fromValue ? "Cancel" : "Not a moon", className: "ghost", id: "moon-cancel", onClick: closeModal },
     { label: "🌙 Shoot the moon", className: "primary", id: "moon-confirm", onClick: confirm }
   ]);
   faceModal(seatRot(seat));
-  var wireJack = function () {
+  var wireMoon = function () {
+    var add = $("moon-add"), sub = $("moon-sub");
+    if (add) add.addEventListener("click", function () { mode = "add"; $("modal-body").innerHTML = draw(); wireMoon(); });
+    if (sub) sub.addEventListener("click", function () { mode = "subtract"; $("modal-body").innerHTML = draw(); wireMoon(); });
     $("modal-body").querySelectorAll("[data-j]").forEach(function (b) {
-      b.addEventListener("click", function () { jack = Number(b.getAttribute("data-j")); $("modal-body").innerHTML = draw(); wireJack(); });
+      b.addEventListener("click", function () { jack = Number(b.getAttribute("data-j")); $("modal-body").innerHTML = draw(); wireMoon(); });
     });
   };
-  wireJack();
+  wireMoon();
 }
 
-function triggerMoon(seat, jack) {
+function triggerMoon(seat, jack, mode) {
   if (moonBusy) return;
   endAllDrags();
   var c = ctx();
-  var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass);
+  var hand = R.makeMoonHand(seat, c.st, jack, c.index, c.dealer, c.pass, mode);
   moonBusy = true; // so the winner screen / scorecard waits for the animation
-  startMoonAnimation(seat);
+  startMoonAnimation(seat, null, hand.moonMode);
   commitHand(hand, c);
 }
 
@@ -3982,26 +4170,27 @@ function moonDone() {
   if (pendingWinner) { pendingWinner = false; pendingSheet = false; showWinnerScreen(); }
   else if (pendingSheet) { pendingSheet = false; openScorecard({ auto: true, hand: state.rounds.length - 1 }); }
 }
-function moonText() {
+function moonText(mode) {
   var t = handTotal();
-  return state.rules.moonMode === "subtract" ? "Minus " + t + " for the shooter" : "Everyone else takes " + t;
+  var m = mode === "subtract" || mode === "add" ? mode : (state && state.rules.moonMode === "subtract" ? "subtract" : "add");
+  return m === "subtract" ? "Minus " + t + " for the shooter" : "Everyone else takes " + t;
 }
-function playCalmMoon(name) {
+function playCalmMoon(name, mode) {
   var stage = $("moon-stage");
   stage.hidden = false;
-  stage.innerHTML = '<div class="moon-sky calm"></div><div class="calm-moon"><span class="calm-badge">🌙</span><b>' + esc(name) + " shot the moon!</b><span>" + esc(moonText()) + "</span><small>Tap to continue</small></div>";
+  stage.innerHTML = '<div class="moon-sky calm"></div><div class="calm-moon"><span class="calm-badge">🌙</span><b>' + esc(name) + " shot the moon!</b><span>" + esc(moonText(mode)) + "</span><small>Tap to continue</small></div>";
   var t = setTimeout(moonDone, 2200);
   return { skip: function () { clearTimeout(t); moonDone(); } };
 }
 // The celebration is always upright (rot 0), whichever layout is in use.
-function startMoonAnimation(seat, forcedId) {
+function startMoonAnimation(seat, forcedId, mode) {
   var id = forcedId || pickVariant();
   moonBusy = true;
   moonStartedAt = Date.now();
   sfx("bang");
   buzz([20, 60, 120]);
   var name = state.players[seat];
-  if (calm() && !forcedId) { moonCtl = playCalmMoon(name); return "calm"; }
+  if (calm() && !forcedId) { moonCtl = playCalmMoon(name, mode); return "calm"; }
   moonCtl = M.play({ container: $("moon-stage"), name: name, rot: 0, variant: id, timeScale: window.__heartsTS || 1, onDone: moonDone });
   return id;
 }
@@ -4087,7 +4276,7 @@ function deleteRound(idx) {
 /* ---------- hands list ---------- */
 function handTags(h, st) {
   var t = [];
-  if (h.moon !== null) t.push('<span class="tag moon">☾ Shot the moon: ' + esc(st.players[h.moon]) + "</span>");
+  if (h.moon !== null) t.push('<span class="tag moon">☾ Shot the moon: ' + esc(st.players[h.moon]) + " · " + esc(R.moonChoiceLabel(h)) + "</span>");
   else if (isInt(h.queen)) t.push('<span class="tag q">♠Q ' + esc(st.players[h.queen]) + "</span>");
   if (isInt(h.jack)) t.push('<span class="tag j">J♦ ' + esc(st.players[h.jack]) + "</span>");
   return t.join("");
@@ -4163,7 +4352,7 @@ function scorecardHtml(st, opts) {
       var b = (h.moon === i ? '<em class="mt">☾</em>' : "") + (h.queen === i && h.moon === null ? '<em class="qb">♠Q</em>' : "") + (h.jack === i ? '<em class="jb">J♦</em>' : "");
       return "<td" + (h.moon === i ? ' class="shooter"' : "") + "><b>" + (h.scores[i] > 0 ? "+" : "") + h.scores[i] + "</b>" + b + "<small>" + run[k][i] + "</small></td>";
     }).join("") + '<td class="ps">' + esc(initialOf(st.players[h.dealer])) + " · " + esc(R.PASS_LABEL[h.pass].replace("Pass ", "")) +
-      (h.moon !== null ? '<br><span class="tag moon">☾ ' + esc(st.players[h.moon]) + "</span>" : "") +
+      (h.moon !== null ? '<br><span class="tag moon">☾ ' + esc(st.players[h.moon]) + " · " + esc(R.moonChoiceLabel(h)) + "</span>" : "") +
       (opts.readOnly ? "" : ' <button type="button" class="link small" data-edit="' + k + '" aria-label="Edit hand ' + (k + 1) + '">Edit</button>') + "</td></tr>";
   }).join("");
   if (!rows) rows = '<tr><td colspan="' + (n + 2) + '" class="muted">No hands yet</td></tr>';
@@ -4879,9 +5068,9 @@ function change(mutate) {
 
 /* ---------- help + first-run intro ---------- */
 var INTRO = [
-  { t: "Tap a number to type it", b: "Each player has a card. Tap the “?” for a keypad with quick chips (0, 1, 2, 5, 13). Use − and + to nudge, or slide sideways across the card. A tap never clears anything." },
+  { t: "Tap a number to type it", b: "Each player has a card. Tap the “?” for a keypad with quick chips (0, 1, 2, 5, 13). Drag the score slider, use − and +, or slide sideways across the card. A tap never clears anything." },
   { t: "The last player fills itself", b: "When everyone but one is set, the rest of the points go to the last player as a highlighted suggestion. Tap ✓ (or just Save). Save tells you exactly what's missing." },
-  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon” and confirm. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
+  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon” and choose, for that hand only, whether everyone else takes the points or the shooter loses them. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
 ];
 var introStep = 0, introDone = null;
 function showOnboarding(then) {
@@ -4912,7 +5101,7 @@ function showHelp() {
     body.innerHTML =
       '<div class="help-sec"><h3>Entering a hand</h3><ul>' +
         "<li><b>Tap</b> a player's number to type it on the keypad, or use a quick chip. Arrow keys and digits work on a keyboard.</li>" +
-        "<li><b>− / +</b> nudge by one. <b>Slide</b> sideways across a card for big changes; it snaps to whole points and shows a big live number.</li>" +
+        "<li><b>− / +</b> nudge by one. <b>Drag the score slider</b> (the track and thumb under the number), or slide sideways across the card. It snaps to whole points.</li>" +
         "<li><b>The rest:</b> when only one player is left, they get the remaining points automatically (shown highlighted). Tap ✓ to confirm, or just Save. The keypad also has an “N left” chip.</li>" +
         "<li><b>Save</b> needs exactly " + tot + " points. If it's greyed out it says why, e.g. “Dave still to set” or “3 points left to give out”.</li>" +
         "<li><b>Clear</b> lives in the keypad and always asks first; the toast offers Undo. The keypad's Undo steps back that player's last value.</li></ul></div>" +
@@ -4920,8 +5109,8 @@ function showHelp() {
         "<li>Each heart is 1 point" + (r.spot ? " (Spot Hearts: ♥2–♥10 face value, J 11, Q 12, K 13, A 14)" : "") + ", the Queen of Spades (♠Q) is 13: " + tot + " points a hand. Lowest total wins when anyone reaches the end score.</li>" +
         "<li>The ♠Q holder is spotted automatically when only one player has 13+; otherwise tap ♠Q? on the right card. It shows on the scorecard and in each hand's recap.</li>" +
         (r.jack ? "<li>J♦ (Omnibus): tap J♦ on whoever took it; they get −10.</li>" : "") +
-        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. " +
-          (r.moonMode === "subtract" ? "This game: the shooter gets −" + tot + " (totals can go below 0) and others 0." : "This game: the shooter scores 0 and everyone else +" + tot + ".") + " The confirm shows the new totals first.</li></ul></div>" +
+        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. Each hand asks: everyone else +" + tot + ", or −" + tot + " for the shooter" +
+          (r.moonMode === "subtract" ? " (this game starts on −" + tot + ")" : " (this game starts on +" + tot + ")") + ". The confirm shows the new totals first. Editing that hand lets you change the choice.</li></ul></div>" +
       '<div class="help-sec"><h3>Passing and dealing</h3><ul><li>' + n + " players: " + R.passCycle(n, r.passMode).map(function (p) { return R.PASS_LABEL[p]; }).join(", ") + ", then repeat. Pass 3 cards. " +
         R.cardsInfo(n).each + " cards each" + (R.cardsInfo(n).removed ? " (remove " + R.cardsInfo(n).removed + ")" : "") + ".</li><li>The deal moves one seat clockwise each hand; the card shows who deals and whom you pass to.</li></ul></div>" +
       '<div class="help-sec"><h3>Fixing mistakes</h3><ul><li>Undo / Redo in the bottom bar step through whole hands and player changes.</li><li>Hands → Edit reopens any hand with the same controls and shows that hand\'s totals; later totals are recalculated.</li></ul></div>' +

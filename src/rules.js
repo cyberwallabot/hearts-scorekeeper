@@ -31,7 +31,8 @@
     };
   }
   function rulesSummary(r) {
-    var bits = [r.moonMode === "subtract" ? "Moon −26 to shooter" : "Moon +26 to others"];
+    var t = pointsTotal(r);
+    var bits = [r.moonMode === "subtract" ? "Moon default −" + t + " to shooter" : "Moon default +" + t + " to others"];
     if (r.spot) bits.push("Spot hearts");
     if (r.jack) bits.push("J♦ −10");
     if (r.passMode === "nohold") bits.push("No hold hands");
@@ -136,6 +137,36 @@
   }
   function blankEntry(n) { var p = []; while (p.length < n) p.push(null); return { pts: p, queen: null, jack: null }; }
 
+  // Which way a moon hand was scored. Old saves omit moonMode; a negative
+  // shooter score, after putting a J♦ −10 back, means the shooter was subtracted.
+  function inferMoonMode(r) {
+    if (!r || !isInt(r.moon) || !Array.isArray(r.scores)) return null;
+    var adj = isInt(r.jack) && r.jack === r.moon ? 10 : 0;
+    var base = (isInt(r.scores[r.moon]) ? r.scores[r.moon] : 0) + adj;
+    return base < 0 ? "subtract" : "add";
+  }
+  function moonModeOf(r) {
+    if (!r || !isInt(r.moon)) return null;
+    if (r.moonMode === "subtract" || r.moonMode === "add") return r.moonMode;
+    return inferMoonMode(r);
+  }
+  function moonPoints(r) {
+    var mode = moonModeOf(r);
+    if (!mode) return 0;
+    if (mode === "subtract") return Math.abs((r.scores[r.moon] || 0) + (r.jack === r.moon ? 10 : 0));
+    var best = 0, i, v;
+    for (i = 0; i < r.scores.length; i++) {
+      if (i === r.moon || (r.out && r.out[i])) continue;
+      v = r.scores[i] + (r.jack === i ? 10 : 0);
+      if (v > best) best = v;
+    }
+    return best;
+  }
+  function moonChoiceLabel(r) {
+    var n = moonPoints(r);
+    return moonModeOf(r) === "subtract" ? "−" + n + " to the shooter" : "+" + n + " to everyone else";
+  }
+
   // Turn a complete entry into a stored hand.
   function makeHand(entry, st) {
     var hs = handStatus(entry, st);
@@ -145,7 +176,7 @@
     var scores = pts.slice();
     var jack = st.rules.jack ? entry.jack : null;
     if (isInt(jack)) scores[jack] -= 10;
-    return withOut({ scores: scores, pts: pts, moon: null, pass: passFor(st.rounds.length, active.length, st.rules.passMode),
+    return withOut({ scores: scores, pts: pts, moon: null, moonMode: null, pass: passFor(st.rounds.length, active.length, st.rules.passMode),
       dealer: currentDealer(st), queen: hs.queen, jack: isInt(jack) ? jack : null }, st);
   }
   // Remember who sat out, so editing an old hand later uses the same players.
@@ -153,17 +184,20 @@
     if (st.out && st.out.some(Boolean)) h.out = st.out.map(Boolean);
     return h;
   }
-  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass) {
+  // moonMode overrides the game default for this hand only. The default still
+  // applies when a hand doesn't pass one (older callers, and the pre-selected choice).
+  function makeMoonHand(shooter, st, jack, handIndex, dealer, pass, moonMode) {
     var n = st.players.length, active = activeSeats(st), total = pointsTotal(st.rules);
+    var mode = moonMode === "subtract" || moonMode === "add" ? moonMode : (st.rules && st.rules.moonMode === "subtract" ? "subtract" : "add");
     var scores = range(n).map(function (s) {
       if (active.indexOf(s) === -1) return 0;
-      if (st.rules.moonMode === "subtract") return s === shooter ? -total : 0;
+      if (mode === "subtract") return s === shooter ? -total : 0;
       return s === shooter ? 0 : total;
     });
     var j = st.rules.jack && isInt(jack) ? jack : null;
     if (j !== null) scores[j] -= 10;
     var k = isInt(handIndex) ? handIndex : st.rounds.length;
-    return withOut({ scores: scores, pts: null, moon: shooter, pass: pass || passFor(k, active.length, st.rules.passMode),
+    return withOut({ scores: scores, pts: null, moon: shooter, moonMode: mode, pass: pass || passFor(k, active.length, st.rules.passMode),
       dealer: isInt(dealer) ? dealer : currentDealer(st), queen: shooter, jack: j }, st);
   }
 
@@ -211,7 +245,7 @@
 
   function handRecap(r, players) {
     if (isInt(r.moon)) {
-      var s = players[r.moon] + " shot the moon";
+      var s = players[r.moon] + " shot the moon (" + moonChoiceLabel(r) + ")";
       if (isInt(r.jack)) s += "; " + players[r.jack] + " took the J♦";
       return s;
     }
@@ -266,6 +300,9 @@
       if (h.moon !== null) h.queen = h.moon;
       else if (h.pts) { var c = h.pts.map(function (p, i) { return p >= 13 ? i : -1; }).filter(function (i) { return i >= 0; }); if (c.length === 1) h.queen = c[0]; }
     }
+    // Scores are the record. Infer the choice so a save from before per-hand
+    // moons still shows the way that hand was actually scored.
+    h.moonMode = inferMoonMode(h);
     return h;
   }
   // Accepts v1 (localStorage era), v2 (4 players) and v3 states.
@@ -393,7 +430,7 @@
 
   function csvCell(v) { var s = v == null ? "" : String(v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
   function toCsv(games) {
-    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner"]];
+    var rows = [["game_id", "finished_at", "target", "rules", "hand", "player", "seat", "points", "score", "running_total", "rank_after", "dealer", "pass", "moon", "queen", "jack", "final_total", "winner", "moon_mode"]];
     (games || []).forEach(function (g) {
       var n = g.players.length, run = runningTotals(g.rounds, n), act = range(n).filter(function (i) { return !(g.out && g.out[i]); });
       var rulesTxt = rulesSummary(sanitizeRules(g.rules, g.moonMode));
@@ -401,7 +438,7 @@
         var rk = ranks(run[k], act);
         g.players.forEach(function (p, i) {
           rows.push([g.id, new Date(g.finishedAt).toISOString(), g.target, rulesTxt, k + 1, p, i + 1, r.pts ? r.pts[i] : "", r.scores[i], run[k][i], rk[i] || "",
-            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : ""]);
+            g.players[r.dealer] || "", r.pass, r.moon === i ? "yes" : "", r.queen === i ? "yes" : "", r.jack === i ? "yes" : "", g.totals[i], (g.winners || []).indexOf(i) !== -1 ? "yes" : "", isInt(r.moon) ? (moonModeOf(r) || "") : ""]);
         });
       });
     });
@@ -450,6 +487,7 @@
     isInt: isInt, defaultRules: defaultRules, sanitizeRules: sanitizeRules, rulesSummary: rulesSummary, pointsTotal: pointsTotal, cardsInfo: cardsInfo,
     activeSeats: activeSeats, passCycle: passCycle, passFor: passFor, passTarget: passTarget, nextDealer: nextDealer, currentDealer: currentDealer,
     entryBounds: entryBounds, queenCandidates: queenCandidates, handStatus: handStatus, blankEntry: blankEntry, makeHand: makeHand, makeMoonHand: makeMoonHand,
+    moonModeOf: moonModeOf, moonChoiceLabel: moonChoiceLabel,
     totals: totals, runningTotals: runningTotals, leaders: leaders, losers: losers, ranks: ranks, isOver: isOver, winners: winners, handRecap: handRecap,
     makeId: makeId, normName: normName, nameKey: nameKey, isPlaceholder: isPlaceholder, newGame: newGame, validHand: validHand, sanitizeState: sanitizeState,
     buildRecord: buildRecord, validRecord: validRecord, normalizeRecord: normalizeRecord, parseBackup: parseBackup, mergeGames: mergeGames, updateRoster: updateRoster,

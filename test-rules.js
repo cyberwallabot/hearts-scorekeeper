@@ -30,7 +30,8 @@ st.rounds.push(h1);
 eq(R.handRecap(h1, st.players), "Dave took the Queen · Carol took 8 · Bob stayed clean");
 // hand 2: Carol shoots the moon (+26)
 let h2 = R.makeMoonHand(2, st);
-eq([h2.scores, h2.pass, h2.dealer], [[26, 26, 0, 26], "right", 1]);
+eq([h2.scores, h2.pass, h2.dealer, h2.moonMode], [[26, 26, 0, 26], "right", 1, "add"]);
+eq(R.handRecap(h2, st.players), "Carol shot the moon (+26 to everyone else)");
 st.rounds.push(h2);
 eq(R.totals(st.rounds, 4), [31, 26, 8, 39], "punch list hand 2 totals");
 eq(R.runningTotals(st.rounds, 4), [[5, 0, 8, 13], [31, 26, 8, 39]]);
@@ -47,6 +48,8 @@ eq(R.losers([33, 29, 12, 56], [0, 1, 2, 3]), [3]);
 // --- -26 moon mode (R-04): shooter can go negative ---
 let s2 = R.newGame({ players: ["A", "B", "C", "D"], rules: { moonMode: "subtract" } });
 eq(R.makeMoonHand(1, s2).scores, [0, -26, 0, 0]);
+eq(R.makeMoonHand(1, s2).moonMode, "subtract");
+eq(R.handRecap(R.makeMoonHand(1, s2), s2.players), "B shot the moon (\u221226 to the shooter)");
 
 // --- passing patterns / player counts ---
 eq(R.passCycle(4, "classic"), ["left", "right", "across", "hold"]);
@@ -84,6 +87,7 @@ let v2 = { version: 2, id: "old", started: true, startedAt: 5, players: ["A", "B
   rounds: [{ scores: [5, 0, 8, 13], moon: null, pass: "left" }, { scores: [0, -26, 0, 0], moon: 1, pass: "right" }, { scores: [1, 2], pass: "left" }] };
 let m = R.sanitizeState(v2);
 eq([m.version, m.rules.moonMode, m.rounds.length, m.rounds[0].dealer, m.rounds[1].dealer, m.rounds[0].queen, m.rounds[1].queen, m.rounds[0].pts], [3, "subtract", 2, 1, 2, 3, 1, [5, 0, 8, 13]]);
+eq([m.rounds[0].moonMode, m.rounds[1].moonMode], [null, "subtract"], "legacy −26 hand keeps its choice");
 eq(R.sanitizeState(null), null);
 
 // --- records, backup, merge ---
@@ -131,4 +135,34 @@ console.log("Rules (3-6 players, variants, records, stats, CSV) tests passed.");
   eq(R.handRecap(h, s.players), "A took 8 hearts + the Queen · B took 5 · C stayed clean");
   let back = R.sanitizeState(Object.assign({}, s, { rounds: [h] })); eq(back.rounds[0].out, [false, false, false, true]);
   console.log("Out-snapshot and recap tests passed.");
+}
+
+// --- per-hand moon choice, including old saves ---
+{
+  let g = R.newGame({ players: ["A", "B", "C", "D"], rules: { moonMode: "add" } });
+  let a = R.makeMoonHand(0, g, null, 0, 0, "left", "add");
+  let b = R.makeMoonHand(1, g, null, 1, 1, "right", "subtract");
+  eq(a.scores, [0, 26, 26, 26]); eq(a.moonMode, "add");
+  eq(b.scores, [0, -26, 0, 0]); eq(b.moonMode, "subtract");
+  eq(R.makeMoonHand(2, g).moonMode, "add", "omitted mode uses the game default");
+  g.rounds = [a, b];
+  eq(R.totals(g.rounds, 4), [0, 0, 26, 26], "each hand keeps its own moon choice");
+  eq(R.handRecap(a, g.players), "A shot the moon (+26 to everyone else)");
+  eq(R.handRecap(b, g.players), "B shot the moon (\u221226 to the shooter)");
+  let subDefault = R.newGame({ players: ["A", "B", "C", "D"], rules: { moonMode: "subtract" } });
+  eq(R.makeMoonHand(0, subDefault, null, 0, 0, "left", "add").scores, [0, 26, 26, 26], "a hand can add even when the default is subtract");
+  let jackAdd = R.sanitizeState({ version: 3, id: "ja", started: true, startedAt: 1, players: ["A", "B", "C", "D"], target: 100,
+    rules: { name: "Omnibus", moonMode: "subtract", jack: true },
+    rounds: [{ scores: [-10, 26, 26, 26], moon: 0, jack: 0, pass: "left", queen: 0 }] });
+  eq(jackAdd.rounds[0].moonMode, "add", "J\u2666 on the shooter is not a subtract moon");
+  eq(jackAdd.rules.moonMode, "subtract", "old game default still loads");
+  let jackSub = R.sanitizeState({ version: 3, id: "js", started: true, startedAt: 1, players: ["A", "B", "C", "D"], target: 100,
+    rules: { moonMode: "add", jack: true },
+    rounds: [{ scores: [-36, 0, -10, 0], moon: 0, jack: 2, pass: "right" }] });
+  eq(jackSub.rounds[0].moonMode, "subtract");
+  let leg = R.sanitizeState({ version: 2, id: "leg", started: true, startedAt: 1, players: ["A", "B", "C", "D"], target: 100, moonMode: "subtract",
+    rounds: [{ scores: [0, 0, -26, 0], moon: 2, pass: "left" }, { scores: [26, 0, 26, 26], moon: 1, pass: "right" }] });
+  eq(leg.rules.moonMode, "subtract");
+  eq([leg.rounds[0].moonMode, leg.rounds[1].moonMode], ["subtract", "add"], "each old hand is scored the way its numbers say");
+  console.log("Per-hand moon choice tests passed.");
 }

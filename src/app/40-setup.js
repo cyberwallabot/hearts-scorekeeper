@@ -337,9 +337,9 @@ function change(mutate) {
 
 /* ---------- help + first-run intro ---------- */
 var INTRO = [
-  { t: "Tap a number to type it", b: "Each player has a card. Tap the “?” for a keypad with quick chips (0, 1, 2, 5, 13). Use − and + to nudge, or slide sideways across the card. A tap never clears anything." },
+  { t: "Tap a number to type it", b: "Each player has a card. Tap the “?” for a keypad with quick chips (0, 1, 2, 5, 13). Drag the score slider, use − and +, or slide sideways across the card. A tap never clears anything." },
   { t: "The last player fills itself", b: "When everyone but one is set, the rest of the points go to the last player as a highlighted suggestion. Tap ✓ (or just Save). Save tells you exactly what's missing." },
-  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon” and confirm. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
+  { t: "Moon, undo, scorecard", b: "Shot the moon? Tap “🌙 Shoot the moon” and choose, for that hand only, whether everyone else takes the points or the shooter loses them. Undo, Redo, Scorecard, Hands, Help and Menu sit in the bar at the bottom. Everything saves on every tap." }
 ];
 var introStep = 0, introDone = null;
 function showOnboarding(then) {
@@ -370,7 +370,7 @@ function showHelp() {
     body.innerHTML =
       '<div class="help-sec"><h3>Entering a hand</h3><ul>' +
         "<li><b>Tap</b> a player's number to type it on the keypad, or use a quick chip. Arrow keys and digits work on a keyboard.</li>" +
-        "<li><b>− / +</b> nudge by one. <b>Slide</b> sideways across a card for big changes; it snaps to whole points and shows a big live number.</li>" +
+        "<li><b>− / +</b> nudge by one. <b>Drag the score slider</b> (the track and thumb under the number), or slide sideways across the card. It snaps to whole points.</li>" +
         "<li><b>The rest:</b> when only one player is left, they get the remaining points automatically (shown highlighted). Tap ✓ to confirm, or just Save. The keypad also has an “N left” chip.</li>" +
         "<li><b>Save</b> needs exactly " + tot + " points. If it's greyed out it says why, e.g. “Dave still to set” or “3 points left to give out”.</li>" +
         "<li><b>Clear</b> lives in the keypad and always asks first; the toast offers Undo. The keypad's Undo steps back that player's last value.</li></ul></div>" +
@@ -378,8 +378,8 @@ function showHelp() {
         "<li>Each heart is 1 point" + (r.spot ? " (Spot Hearts: ♥2–♥10 face value, J 11, Q 12, K 13, A 14)" : "") + ", the Queen of Spades (♠Q) is 13: " + tot + " points a hand. Lowest total wins when anyone reaches the end score.</li>" +
         "<li>The ♠Q holder is spotted automatically when only one player has 13+; otherwise tap ♠Q? on the right card. It shows on the scorecard and in each hand's recap.</li>" +
         (r.jack ? "<li>J♦ (Omnibus): tap J♦ on whoever took it; they get −10.</li>" : "") +
-        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. " +
-          (r.moonMode === "subtract" ? "This game: the shooter gets −" + tot + " (totals can go below 0) and others 0." : "This game: the shooter scores 0 and everyone else +" + tot + ".") + " The confirm shows the new totals first.</li></ul></div>" +
+        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. Each hand asks: everyone else +" + tot + ", or −" + tot + " for the shooter" +
+          (r.moonMode === "subtract" ? " (this game starts on −" + tot + ")" : " (this game starts on +" + tot + ")") + ". The confirm shows the new totals first. Editing that hand lets you change the choice.</li></ul></div>" +
       '<div class="help-sec"><h3>Passing and dealing</h3><ul><li>' + n + " players: " + R.passCycle(n, r.passMode).map(function (p) { return R.PASS_LABEL[p]; }).join(", ") + ", then repeat. Pass 3 cards. " +
         R.cardsInfo(n).each + " cards each" + (R.cardsInfo(n).removed ? " (remove " + R.cardsInfo(n).removed + ")" : "") + ".</li><li>The deal moves one seat clockwise each hand; the card shows who deals and whom you pass to.</li></ul></div>" +
       '<div class="help-sec"><h3>Fixing mistakes</h3><ul><li>Undo / Redo in the bottom bar step through whole hands and player changes.</li><li>Hands → Edit reopens any hand with the same controls and shows that hand\'s totals; later totals are recalculated.</li></ul></div>' +

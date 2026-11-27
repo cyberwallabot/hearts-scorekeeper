@@ -39,6 +39,9 @@ function cardHtml(i) {
       '<button type="button" class="step" id="cminus-' + i + '" aria-label="' + esc(state.players[i]) + ' minus 1">−</button>' +
       '<button type="button" class="c-val unknown" id="cval-' + i + '" aria-label="' + esc(state.players[i]) + ' points this hand">?</button>' +
       '<button type="button" class="step" id="cplus-' + i + '" aria-label="' + esc(state.players[i]) + ' plus 1">+</button>' +
+      '<div class="c-slider" id="cslider-' + i + '" data-seat="' + i + '" role="slider" tabindex="0" aria-orientation="horizontal" aria-valuemin="0" aria-valuemax="26" aria-valuenow="0" aria-label="' + esc(state.players[i]) + ' score slider">' +
+        '<div class="cs-track" id="cstrack-' + i + '"><i class="cs-fill" id="csfill-' + i + '"></i><span class="cs-thumb" id="csthumb-' + i + '"></span></div>' +
+      '</div>' +
     '</div>' +
     '<div class="c-acts">' +
       '<button type="button" class="c-ok" id="cok-' + i + '" hidden></button>' +
@@ -46,7 +49,8 @@ function cardHtml(i) {
       (jack ? '<button type="button" class="c-j" id="cj-' + i + '" aria-pressed="false">J♦</button>' : "") +
       '<button type="button" class="c-moon" id="cmoon-' + i + '" hidden>🌙 Moon</button>' +
     '</div>' +
-    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div><div class="cd-scale"><i id="cdbar-' + i + '"></i></div>' +
+    '<div class="c-drag" id="cdrag-' + i + '" hidden><div class="cd-num" id="cdnum-' + i + '">0</div>' +
+      '<div class="cd-slider"><div class="cd-track"><i id="cdbar-' + i + '"></i><span class="cd-thumb" id="cdthumb-' + i + '"></span></div></div>' +
       '<div class="cd-range"><span id="cdmin-' + i + '">0</span><span id="cdcap-' + i + '"></span><span id="cdmax-' + i + '">26</span></div>' +
       '<div class="cd-moon" id="cdmoon-' + i + '"><span>🌙 keep pushing to shoot the moon</span><div class="bar"><i></i></div></div></div>' +
   '</div>';
@@ -134,6 +138,12 @@ function wireCard(i) {
   $("cq-" + i).addEventListener("click", function () { if (locked()) return; entry.queen = entry.queen === i ? null : i; persist(); paintAll(); buzz(8); });
   if ($("cj-" + i)) $("cj-" + i).addEventListener("click", function () { if (locked()) return; entry.jack = entry.jack === i ? null : i; persist(); paintAll(); buzz(8); });
   $("cmoon-" + i).addEventListener("click", function () { askMoon(i); });
+  var sl = $("cslider-" + i);
+  sl.addEventListener("pointerdown", onSliderDown, { passive: false });
+  sl.addEventListener("pointermove", onSliderMove, { passive: false });
+  sl.addEventListener("pointerup", onSliderUp);
+  sl.addEventListener("pointercancel", onSliderCancel);
+  sl.addEventListener("lostpointercapture", onSliderCancel);
 }
 
 /* ---------- entry operations ---------- */
@@ -240,12 +250,15 @@ function paintAll() {
     after.textContent = c.editing ? "after hand " + (c.index + 1) : (ev !== null && !lk ? "→ " + (base[i] + ev) : "");
     var tgt = R.passTarget(i, c.pass, c.active);
     $("cpass-" + i).textContent = c.pass === "hold" ? "No pass this hand" : (tgt === null ? "" : "Pass 3 " + c.pass + " → " + state.players[tgt]);
-    var val = $("cval-" + i);
-    val.classList.toggle("unknown", v === null && !sug);
-    val.classList.toggle("sug", v === null && !!sug);
-    val.textContent = v !== null ? String(v) : (sug ? String(hs.suggestion.value) : "?");
-    val.setAttribute("aria-label", state.players[i] + ": " + (v !== null ? v + " points" : sug ? "suggested " + hs.suggestion.value + ", not confirmed" : "not set") + ". Tap to type.");
     var b = R.entryBounds(entry.pts, i, c.active, total);
+    var val = $("cval-" + i);
+    if (!sliderDragFor(i)) {
+      val.classList.toggle("unknown", v === null && !sug);
+      val.classList.toggle("sug", v === null && !!sug);
+      val.textContent = v !== null ? String(v) : (sug ? String(hs.suggestion.value) : "?");
+      paintSlider(i, isInt(v) ? v : 0, b.max);
+    }
+    val.setAttribute("aria-label", state.players[i] + ": " + (v !== null ? v + " points" : sug ? "suggested " + hs.suggestion.value + ", not confirmed" : "not set") + ". Tap to type.");
     $("cminus-" + i).disabled = lk || v === null && !sug || (v !== null && v <= 0);
     $("cplus-" + i).disabled = lk || (isInt(v) ? v >= b.max : b.max <= 0);
     var ok = $("cok-" + i);
@@ -343,7 +356,7 @@ function onCardKey(e, i) {
 var SLIDE_START = 10;
 function onDown(e, i) {
   if (moonBusy || locked()) return;
-  if (e.target.closest && e.target.closest("button") && !e.target.closest(".c-val")) return;
+  if (e.target.closest && (e.target.closest(".c-slider") || (e.target.closest("button") && !e.target.closest(".c-val")))) return;
   if (dragBySeat[i]) return;
   if (e.pointerType === "mouse" && e.button !== 0) return;
   e.preventDefault();
@@ -386,8 +399,11 @@ function onMove(e) {
 }
 function paintDrag(d, b) {
   var i = d.seat, v = d.st.value, over = d.st.over || 0;
+  var pct = b.max ? v / b.max * 100 : 0;
   $("cdnum-" + i).textContent = String(v);
-  $("cdbar-" + i).style.width = (b.max ? v / b.max * 100 : 0) + "%";
+  $("cdbar-" + i).style.width = pct + "%";
+  $("cdthumb-" + i).style.left = pct + "%";
+  paintSlider(i, v, b.max);
   $("cdmin-" + i).textContent = "0";
   $("cdmax-" + i).textContent = String(b.max);
   $("cdcap-" + i).textContent = v === b.max && b.max < handTotal() ? "the rest" : "";
@@ -428,7 +444,99 @@ function endDrag(d) {
   }
   if ($("cdrag-" + d.seat)) $("cdrag-" + d.seat).hidden = true;
 }
-function endAllDrags() { Object.keys(drags).forEach(function (k) { endDrag(drags[k]); }); }
+function endAllDrags() {
+  Object.keys(drags).forEach(function (k) { endDrag(drags[k]); });
+  Object.keys(sliderDrags).forEach(function (k) {
+    var d = sliderDrags[k];
+    delete sliderDrags[k];
+    var sl = $("cslider-" + d.seat);
+    if (sl) { try { sl.releasePointerCapture(Number(k)); } catch (e) {} }
+  });
+}
+
+/* ---------- score slider (track + thumb) ---------- */
+var sliderDrags = {};
+function sliderDragFor(i) {
+  var k;
+  for (k in sliderDrags) if (sliderDrags[k].seat === i) return sliderDrags[k];
+  return null;
+}
+function paintSlider(i, value, max) {
+  var sl = $("cslider-" + i);
+  if (!sl) return;
+  var pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
+  var fill = $("csfill-" + i), thumb = $("csthumb-" + i);
+  if (fill) fill.style.width = pct + "%";
+  if (thumb) thumb.style.left = pct + "%";
+  sl.classList.toggle("off", !(max > 0));
+  sl.setAttribute("aria-valuemax", String(max));
+  sl.setAttribute("aria-valuenow", String(Math.round(value) || 0));
+  sl.setAttribute("aria-valuetext", max > 0 ? Math.round(value) + " of " + max : "no points left");
+  sl.setAttribute("aria-disabled", max > 0 && !locked() ? "false" : "true");
+}
+// Finger position along the track, in the player's own left-to-right axis
+// (shared-table seats are rotated). Returns 0..1.
+function sliderRatio(track, clientX, clientY, rot) {
+  var r = track.getBoundingClientRect();
+  var along = L.localDx(clientX - (r.left + r.width / 2), clientY - (r.top + r.height / 2), rot);
+  var w = track.offsetWidth || 1;
+  return Math.max(0, Math.min(1, (along + w / 2) / w));
+}
+function sliderValueAt(d, x, y) {
+  var track = $("cstrack-" + d.seat);
+  if (!track || !(d.max > 0)) return 0;
+  return Math.max(0, Math.min(d.max, Math.round(sliderRatio(track, x, y, seatRot(d.seat)) * d.max)));
+}
+function previewSlider(d, x, y) {
+  var v = sliderValueAt(d, x, y);
+  paintSlider(d.seat, v, d.max);
+  var val = $("cval-" + d.seat);
+  if (val) {
+    val.textContent = String(v);
+    val.classList.remove("unknown", "sug");
+  }
+  if (v !== d.last) { d.last = v; buzz(5); sfx("tick"); }
+  return v;
+}
+function onSliderDown(e) {
+  if (moonBusy || locked()) return;
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  var i = Number(e.currentTarget.getAttribute("data-seat"));
+  var b = boundsFor(i);
+  if (!(b.max > 0)) { toast("No points left for " + state.players[i] + "."); sfx("error"); return; }
+  e.preventDefault();
+  e.stopPropagation();
+  try { e.currentTarget.setPointerCapture(e.pointerId); } catch (err) {}
+  var d = { pid: e.pointerId, seat: i, from: entry.pts[i], max: b.max, last: null };
+  sliderDrags[e.pointerId] = d;
+  previewSlider(d, e.clientX, e.clientY);
+}
+function onSliderMove(e) {
+  var d = sliderDrags[e.pointerId];
+  if (!d) return;
+  e.preventDefault();
+  previewSlider(d, e.clientX, e.clientY);
+}
+function finishSlider(d, x, y, commit) {
+  if (!d || sliderDrags[d.pid] !== d) return;
+  delete sliderDrags[d.pid];
+  var sl = $("cslider-" + d.seat);
+  if (sl) { try { sl.releasePointerCapture(d.pid); } catch (e) {} }
+  if (!commit) { paintAll(); return; }
+  var v = sliderValueAt(d, x, y);
+  if (v === handTotal() && d.max === handTotal()) { paintAll(); askMoon(d.seat, true); return; }
+  if (v !== d.from) setPts(d.seat, v, true); else paintAll();
+}
+function onSliderUp(e) {
+  var d = sliderDrags[e.pointerId];
+  if (!d) return;
+  finishSlider(d, e.clientX, e.clientY, true);
+}
+function onSliderCancel(e) {
+  var d = sliderDrags[e.pointerId];
+  if (!d) return;
+  finishSlider(d, e.clientX, e.clientY, false);
+}
 
 /* ---------- keypad ---------- */
 function openKeypad(i, firstDigit) {

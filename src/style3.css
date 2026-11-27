@@ -29,6 +29,7 @@
 .chips > button[aria-pressed="true"] { background: #143425; box-shadow: inset 0 0 0 2px var(--ok); }
 .custom-target { flex: 1; min-width: 110px; }
 .custom-target input { min-height: 44px; }
+.moon-note { margin: -2px 0 8px; }
 .preset-row { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 6px 0 12px; }
 .preset-row .ghost { min-height: 50px; padding: 0 14px; width: auto; }
 .rule-toggles { display: grid; gap: 8px; margin: 10px 0 12px; }
@@ -92,7 +93,10 @@ label.field { margin-bottom: 12px; }
 .c-ok { background: #1a4d33 !important; color: #c9ffdc !important; box-shadow: inset 0 0 0 2px var(--ok) !important; }
 .c-q[aria-pressed="true"], .c-j[aria-pressed="true"] { background: #dfe7ff !important; color: #111a33 !important; }
 .c-j[aria-pressed="true"] { background: #ffd9a0 !important; color: #3a2405 !important; }
-.c-entry { grid-area: entry; display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; gap: 6px; height: clamp(48px, 7.4vh, 70px); }
+.c-entry { grid-area: entry; display: grid; grid-template-columns: 48px minmax(0, 1fr) 48px; grid-template-rows: minmax(44px, 1fr) 24px; gap: 2px 6px; height: auto; min-height: 70px; }
+.c-entry > .step:first-child { grid-column: 1; grid-row: 1; }
+.c-entry > .c-val { grid-column: 2; grid-row: 1; }
+.c-entry > .step:nth-child(3) { grid-column: 3; grid-row: 1; }
 .step { border-radius: 14px; background: var(--card2); color: var(--text); font-size: 1.6rem; font-weight: 800; box-shadow: inset 0 0 0 1px var(--edge); min-height: 44px; }
 .step:disabled { opacity: .35; }
 .c-val { border-radius: 14px; background: #f4efe6; color: #1c1916; font-size: clamp(1.6rem, 4.4vh, 2.6rem); font-weight: 900; font-variant-numeric: tabular-nums; min-height: 44px; }
@@ -103,11 +107,30 @@ label.field { margin-bottom: 12px; }
 @keyframes pop { 50% { transform: scale(1.12); } }
 .card.locked .c-entry { opacity: .45; }
 .card.dragging { box-shadow: inset 4px 0 0 var(--pc), 0 0 0 3px #f3e2a8; }
+/* Score slider. The drag overlay used to be only a fill bar (.cd-scale) with
+   overflow:hidden and no thumb, so nothing moved under the finger. The old
+   jog-dial rules are still in the first stylesheet, but the markup that drew
+   that control left with the seat panels. A native range input also loses its
+   track and thumb on iOS Safari once an ancestor sets touch-action:none.
+   This thumb is a real element, positioned on each pointer move. */
+.c-slider { grid-column: 1 / -1; grid-row: 2; position: relative; display: flex; align-items: center; height: 24px; padding: 0 14px; touch-action: none; cursor: pointer; }
+.c-slider.off { opacity: .45; }
+.c-slider:focus-visible { outline: 3px solid #f3e2a8; outline-offset: 2px; }
+.cs-track, .cd-track { position: relative; flex: 1; height: 10px; border-radius: 99px; background: #3d4d46; box-shadow: inset 0 1px 2px rgba(0,0,0,.45); }
+.cs-fill, .cd-track > i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #5ee08f, #e9c45a); pointer-events: none; }
+.cs-thumb, .cd-thumb {
+  position: absolute; top: 50%; left: 0; width: 22px; height: 22px; border-radius: 50%;
+  background: #fffdf7; border: 3px solid #1c1916; box-shadow: 0 1px 5px rgba(0,0,0,.55), 0 0 0 2px #e9c45a;
+  transform: translate(-50%, -50%); pointer-events: none;
+}
+/* The hit target is the whole row, so the thumb can stay small enough not to cover the track. */
+.c-slider::before { content: ""; position: absolute; left: 0; right: 0; top: -2px; bottom: -4px; }
 .c-drag { position: absolute; inset: 0; background: rgba(10,18,16,.95); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 10px; pointer-events: none; border-radius: 18px; }
 .c-drag[hidden] { display: none; }
 .cd-num { font-size: clamp(56px, 12vh, 120px); font-weight: 900; line-height: 1; color: #fff; font-variant-numeric: tabular-nums; }
-.cd-scale { width: 90%; height: 12px; border-radius: 99px; background: #2c3832; overflow: hidden; }
-.cd-scale i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #5ee08f, #e9c45a, #ff6b78); }
+.cd-slider { width: 90%; height: 36px; display: flex; align-items: center; }
+.cd-track { height: 12px; background: #2c3832; }
+.cd-thumb { width: 30px; height: 30px; }
 .cd-range { width: 90%; display: flex; justify-content: space-between; font-size: .8rem; color: var(--dim); font-weight: 700; }
 .cd-moon { opacity: 0; width: 90%; font-size: .8rem; color: #e5dcff; text-align: center; transition: opacity .15s; }
 .cd-moon.on { opacity: 1; }
@@ -194,6 +217,7 @@ label.field { margin-bottom: 12px; }
 .moon-preview td:first-child { display: flex; align-items: center; gap: 8px; }
 .moon-preview .avatar { width: 24px; height: 24px; font-size: .8rem; }
 .moon-preview td.d { color: #e5dcff; font-weight: 800; }
+.seg.moon-choice { grid-template-columns: 1fr; margin: 8px 0 10px; }
 .jack-pick > button { min-width: 0; }
 
 /* toast with action */
@@ -317,7 +341,12 @@ label.field { margin-bottom: 12px; }
 .game.n5 .c-pass, .game.n6 .c-pass { font-size: .74rem; }
 .game.n5 .card, .game.n6 .card { padding: 8px; gap: 2px 6px; }
 .game.n5 .c-total b, .game.n6 .c-total b { font-size: clamp(28px, 4.4vh, 52px); }
-.game.n5 .c-entry, .game.n6 .c-entry { height: clamp(44px, 6vh, 60px); grid-template-columns: 44px minmax(0, 1fr) 44px; }
+.game.n5 .c-entry, .game.n6 .c-entry { min-height: 68px; height: auto; grid-template-columns: 44px minmax(0, 1fr) 44px; grid-template-rows: minmax(44px, 1fr) 22px; }
+.game.n5 .c-slider, .game.n6 .c-slider { height: 22px; padding: 0 12px; }
+.game.n3 .c-entry { grid-template-rows: 44px 18px; min-height: 0; gap: 0 6px; }
+.game.n3 .c-slider { height: 18px; }
+.game.n3 .cs-thumb { width: 20px; height: 20px; }
+.game.n3 .c-val { min-height: 44px; }
 .game.n5 .c-acts button, .game.n6 .c-acts button { min-width: 44px; padding: 0 6px; }
 
 /* print (History → Print / PDF) */
