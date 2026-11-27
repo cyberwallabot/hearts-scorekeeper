@@ -2,7 +2,7 @@
 
 A scorekeeper for the card game Hearts, for 3 to 6 players. It is one offline-capable web page, and scores never leave the device.
 
-**Live:** https://starry-quasar-yqh9.here.now/
+**Live:** https://games.akbarifamily.com/hearts/ (part of the [Akbari family games page](https://games.akbarifamily.com/))
 
 ## Features
 
@@ -60,7 +60,7 @@ python3 build.py                  # writes index.html and publish/
 node test-logic.js && node test-rules.js
 pip install playwright            # uses /usr/bin/google-chrome, or set CHROME=/path/to/chrome
 python3 test-ui.py                # file:// build; screenshots to ./screenshots/
-python3 test-ui.py https://starry-quasar-yqh9.here.now/ /tmp/shots/   # live, including offline tests
+python3 test-ui.py https://games.akbarifamily.com/hearts/ /tmp/shots/   # live, including offline tests
 ONLY=phone,crash,soak python3 test-ui.py   # run some suites only
 ```
 
