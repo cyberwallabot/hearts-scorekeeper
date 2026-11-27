@@ -71,7 +71,11 @@ e = R.blankEntry(4); e.pts = [40, 0, 50, null];
 hs = R.handStatus(e, sp); eq(hs.suggestion.value, 27); eq(hs.reason, "Who took the J♦?");
 e.jack = 1; hs = R.handStatus(e, sp); eq(hs.complete, true);
 let hj = R.makeHand(e, sp); eq(hj.scores, [40, -10, 50, 27]); eq(hj.jack, 1);
-eq(R.makeMoonHand(0, sp, 2).scores, [0, 117, 107, 117], "moon in spot + jack");
+eq(R.MOON_POINTS, 26);
+eq(R.makeMoonHand(0, sp).scores, [0, 26, 26, 26], "spot hearts moon is 26, not the 117-point hand");
+eq(R.moonPhrase(R.makeMoonHand(0, sp)), "+26 to everyone else");
+eq(R.makeMoonHand(1, sp, null, 0, 0, "left", "subtract").scores, [0, -26, 0, 0], "spot hearts −26 moon");
+eq(R.makeMoonHand(0, sp, 2).scores, [0, 26, 16, 26], "jack is −10 on top of a 26-point moon");
 
 // --- removed player (HT-12): excluded from entry, standings and dealing ---
 let s5 = R.newGame({ players: ["A", "B", "C", "D", "E"], target: 100 });

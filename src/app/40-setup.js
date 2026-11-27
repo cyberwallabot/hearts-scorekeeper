@@ -71,9 +71,9 @@ function renderSetup() {
   $("preset-select").value = r.name;
   $("mode-add").setAttribute("aria-pressed", r.moonMode === "add" ? "true" : "false");
   $("mode-sub").setAttribute("aria-pressed", r.moonMode === "subtract" ? "true" : "false");
-  var tot = R.pointsTotal(r);
-  $("mode-add").firstChild.textContent = "+" + tot + " to everyone else";
-  $("mode-sub").firstChild.textContent = "−" + tot + " to the shooter";
+  var moonPts = R.MOON_POINTS;
+  $("mode-add").firstChild.textContent = "+" + moonPts + " to everyone else";
+  $("mode-sub").firstChild.textContent = "−" + moonPts + " to the shooter";
   $("rule-spot").setAttribute("aria-pressed", r.spot ? "true" : "false");
   $("rule-jack").setAttribute("aria-pressed", r.jack ? "true" : "false");
   $("rule-pass").value = r.passMode;
@@ -378,8 +378,9 @@ function showHelp() {
         "<li>Each heart is 1 point" + (r.spot ? " (Spot Hearts: ♥2–♥10 face value, J 11, Q 12, K 13, A 14)" : "") + ", the Queen of Spades (♠Q) is 13: " + tot + " points a hand. Lowest total wins when anyone reaches the end score.</li>" +
         "<li>The ♠Q holder is spotted automatically when only one player has 13+; otherwise tap ♠Q? on the right card. It shows on the scorecard and in each hand's recap.</li>" +
         (r.jack ? "<li>J♦ (Omnibus): tap J♦ on whoever took it; they get −10.</li>" : "") +
-        "<li><b>Shooting the moon</b> (all " + tot + "): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. Each hand asks: everyone else +" + tot + ", or −" + tot + " for the shooter (totals can go below 0). " +
-          "The house-rules setting only pre-selects that choice" + (r.moonMode === "subtract" ? " (this game starts on −" + tot + ")." : " (this game starts on +" + tot + ").") + " The confirm shows the new totals first. Editing the hand lets you change that choice.</li></ul></div>" +
+        "<li><b>Shooting the moon</b> (every point in the hand): tap 🌙 Shoot the moon, or type " + tot + ", or slide past the end and keep pushing. Each hand asks: everyone else +26, or −26 for the shooter (totals can go below 0). " +
+          (r.spot ? "The moon is 26 even though this hand is worth " + tot + ". " : "The moon is always 26. ") +
+          "The house-rules setting only pre-selects that choice" + (r.moonMode === "subtract" ? " (this game starts on −26)." : " (this game starts on +26).") + " The confirm shows the new totals first. Editing the hand lets you change that choice.</li></ul></div>" +
       '<div class="help-sec"><h3>Passing and dealing</h3><ul><li>' + n + " players: " + R.passCycle(n, r.passMode).map(function (p) { return R.PASS_LABEL[p]; }).join(", ") + ", then repeat. Pass 3 cards. " +
         R.cardsInfo(n).each + " cards each" + (R.cardsInfo(n).removed ? " (remove " + R.cardsInfo(n).removed + ")" : "") + ".</li><li>The deal moves one seat clockwise each hand; the card shows who deals and whom you pass to.</li></ul></div>" +
       '<div class="help-sec"><h3>Fixing mistakes</h3><ul><li>Undo / Redo in the bottom bar step through whole hands and player changes.</li><li>Hands → Edit reopens any hand with the same controls and shows that hand\'s totals; later totals are recalculated.</li></ul></div>' +
